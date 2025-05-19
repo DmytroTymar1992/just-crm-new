@@ -247,13 +247,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || ''
             }
         })
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) closeModal(modal);
-            else showError(modal, data);
+        .then(async response => {
+            const data = await response.json();
+            if (response.ok) {
+                if (data.success) closeModal(modal);
+                else showError(modal, data);
+            } else {
+                showError(modal, data);
+            }
         })
         .catch(error => {
             console.error('Error submitting form:', error);
