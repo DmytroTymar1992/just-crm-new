@@ -204,6 +204,62 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const chatId = {{ selected_chat.id|default:"null" }};
+    const modalContainer = document.getElementById('modalContainer');
+
+    function closeModal(modal) {
+        modal.style.display = 'none';
+        modalContainer.innerHTML = '';
+    }
+
+    function showError(modal, error) {
+        let errorDiv = modal.querySelector('.error-messages');
+        if (!errorDiv) {
+            errorDiv = document.createElement('div');
+            errorDiv.className = 'error-messages';
+            modal.querySelector('.modal-content').insertBefore(errorDiv, modal.querySelector('form'));
+        }
+        if (error.errors) {
+            const errors = JSON.parse(error.errors);
+            const labels = error.labels || {};
+            let html = '<ul>';
+            Object.entries(errors).forEach(([field, errs]) => {
+                const label = labels[field] || field;
+                errs.forEach(err => {
+                    html += `<li>${label}: ${err.message}</li>`;
+                });
+            });
+            html += '</ul>';
+            errorDiv.innerHTML = html;
+        } else {
+            errorDiv.innerHTML = `<ul><li>${error.error || 'Невідома помилка'}</li></ul>`;
+        }
+    }
+
+    function handleFormSubmit(e) {
+        e.preventDefault();
+        const form = this.closest('.ajax-form');
+        const modal = form.closest('.modal');
+        fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || ''
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) closeModal(modal);
+            else showError(modal, data);
+        })
+        .catch(error => {
+            console.error('Error submitting form:', error);
+            showError(modal, {error: 'Помилка відправки форми: ' + error.message});
+        });
+    }
     if (chatId) {
         const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
         const wsUrl = `${wsProtocol}${window.location.host}/ws/chats/${chatId}/`;
@@ -292,24 +348,23 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch('/tasks/create/{{ selected_chat.id }}/')
             .then(response => response.text())
             .then(html => {
-                const modalContainer = document.getElementById('modalContainer');
                 modalContainer.innerHTML = html;
                 const modal = modalContainer.querySelector('.modal');
                 modal.style.display = 'flex';
 
                 // Закриття модального вікна
                 modal.querySelector('.close').addEventListener('click', function() {
-                    modal.style.display = 'none';
-                    modalContainer.innerHTML = '';
+                    closeModal(modal);
                 });
 
                 // Закриття при кліку поза модальним вікном
                 modal.addEventListener('click', function(e) {
                     if (e.target === modal) {
-                        modal.style.display = 'none';
-                        modalContainer.innerHTML = '';
+                        closeModal(modal);
                     }
                 });
+                const submitButton = modal.querySelector('.ajax-submit');
+                if (submitButton) submitButton.addEventListener('click', handleFormSubmit);
             });
     });
 });
