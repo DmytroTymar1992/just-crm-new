@@ -1,0 +1,32 @@
+<!-- main/templates/main/home.html -->
+{% extends 'main/base.html' %}
+{% load static %}
+{% block title %}CRM - Home{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'main/css/home.css' %}">
+{% endblock %}
+{% block content %}
+    <h1>Центр Управління CRM</h1>
+    <div class="dashboard">
+        <div class="card">
+            <h2>ЦУП</h2>
+            <p>Центр Управління Продажами</p>
+            <a href="{% url 'company_list' %}" class="card-link">Перейти</a>
+        </div>
+        <div class="card">
+            <h2>ЦУС</h2>
+            <p>Центр Управління Сайтом</p>
+            <a href="#" class="card-link">Перейти</a>
+        </div>
+        <div class="card">
+            <h2>ЦУМ</h2>
+            <p>Центр Управління Маркетингом</p>
+            <a href="#" class="card-link">Перейти</a>
+        </div>
+        <div class="card">
+            <h2>ЦУФ</h2>
+            <p>Центр Управління Фінансами</p>
+            <a href="#" class="card-link">Перейти</a>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends 'sales/base.html' %}
+
+{% block title %}Створити контакт{% endblock %}
+
+{% block content %}
+    <h1>Створити новий контакт</h1>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {% if company_id %}
+            <input type="hidden" name="company" value="{{ company_id }}">
+        {% endif %}
+        {{ form.as_p }}
+
+        <h3>Телефони</h3>
+        {{ phone_formset.management_form }}
+        <div id="phone-formset">
+            {% for form in phone_formset %}
+                <div class="phone-form mb-3">
+                    {{ form.as_p }}
+                </div>
+            {% endfor %}
+        </div>
+        <button type="button" class="btn btn-secondary mb-3 add-phone-form">Додати телефон</button>
+
+        <h3>Email</h3>
+        {{ email_formset.management_form }}
+        <div id="email-formset">
+            {% for form in email_formset %}
+                <div class="email-form mb-3">
+                    {{ form.as_p }}
+                </div>
+            {% endfor %}
+        </div>
+        <button type="button" class="btn btn-secondary mb-3 add-email-form">Додати email</button>
+
+        <button type="submit" class="btn btn-success">Зберегти</button>
+        <a href="{% url 'contact_list' %}" class="btn btn-secondary">Скасувати</a>
+    </form>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Додавання нового телефону
+            document.querySelector('.add-phone-form').addEventListener('click', function() {
+                const formset = document.querySelector('#phone-formset');
+                const totalForms = document.querySelector('#id_phones-TOTAL_FORMS');
+                const formCount = parseInt(totalForms.value);
+                const newForm = formset.querySelector('.phone-form').cloneNode(true);
+                newForm.innerHTML = newForm.innerHTML.replace(/phones-\d+/g, `phones-${formCount}`);
+                newForm.querySelectorAll('input').forEach(input => input.value = '');
+                formset.appendChild(newForm);
+                totalForms.value = formCount + 1;
+            });
+
+            // Додавання нового email
+            document.querySelector('.add-email-form').addEventListener('click', function() {
+                const formset = document.querySelector('#email-formset');
+                const totalForms = document.querySelector('#id_emails-TOTAL_FORMS');
+                const formCount = parseInt(totalForms.value);
+                const newForm = formset.querySelector('.email-form').cloneNode(true);
+                newForm.innerHTML = newForm.innerHTML.replace(/emails-\d+/g, `emails-${formCount}`);
+                newForm.querySelectorAll('input').forEach(input => input.value = '');
+                formset.appendChild(newForm);
+                totalForms.value = formCount + 1;
+            });
+        });
+    </script>
+{% endblock %}

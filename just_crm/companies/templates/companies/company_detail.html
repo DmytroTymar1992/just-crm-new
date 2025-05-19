@@ -1,0 +1,47 @@
+{% extends 'sales/base.html' %}
+
+{% block title %}Деталі компанії: {{ company.name }}{% endblock %}
+
+{% block content %}
+    <h1>{{ company.name }}</h1>
+    <div class="card mb-3">
+        <div class="card-body">
+            <p><strong>Work ID:</strong> {{ company.work_id|default:"—" }}</p>
+            <p><strong>Rabota ID:</strong> {{ company.rabota_id|default:"—" }}</p>
+            <p><strong>Just ID:</strong> {{ company.just_id|default:"—" }}</p>
+            <p><strong>Відповідальний:</strong> {{ company.responsible|default:"—" }}</p>
+            <p><strong>Дата створення:</strong> {{ company.created_at|date:"d.m.Y H:i" }}</p>
+            <p><strong>Слаг:</strong> {{ company.slug }}</p>
+        </div>
+    </div>
+
+    <h2>Контакти компанії</h2>
+    <a href="{% url 'contact_create' %}?company_id={{ company.pk }}" class="btn btn-primary mb-3">Додати контакт</a>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Ім’я</th>
+                <th>Прізвище</th>
+                <th>Посада</th>
+                <th>Дата створення</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for contact in contacts %}
+                <tr>
+                    <td><a href="{% url 'contact_detail' contact.pk %}">{{ contact.first_name }}</a></td>
+                    <td>{{ contact.last_name }}</td>
+                    <td>{{ contact.position|default:"—" }}</td>
+                    <td>{{ contact.created_at|date:"d.m.Y H:i" }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="4">Немає контактів</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a></a>
+
+    <a href="{% url 'company_list' %}" class="btn btn-secondary mt-3">Назад до списку</a>
+{% endblock %}

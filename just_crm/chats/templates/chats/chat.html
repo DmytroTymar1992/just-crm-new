@@ -1,0 +1,317 @@
+{% extends 'sales/base.html' %}
+
+{% block content %}
+<div class="chat-container">
+    <!-- Ліва частина: список чатів -->
+    <div class="chat-sidebar">
+        <h3><a href="{% url 'chat_list' %}">Чати</a></h3>
+        <ul class="chat-list" id="chat-list">
+            {% for chat in chats %}
+            <li class="{% if chat == selected_chat %}active{% endif %}" data-chat-id="{{ chat.id }}">
+                <a href="{% url 'chat_detail' chat.id %}">
+                    <div class="chat-item">
+                        {% if chat.contact.avatar %}
+                            <img src="{{ chat.contact.avatar.url }}" alt="{{ chat.contact.first_name }}" class="avatar">
+                        {% else %}
+                            <div class="avatar-placeholder">{{ chat.contact.first_name|slice:":1" }}</div>
+                        {% endif %}
+                        <div class="chat-info">
+                            <strong>{{ chat.contact.first_name }} {{ chat.contact.last_name }}</strong>
+                            <p>{{ chat.contact.company.name }}</p>
+                        </div>
+                    </div>
+                </a>
+            </li>
+            {% empty %}
+            <li>Немає чатів</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Центральна частина: чат -->
+    <div class="chat-main">
+        {% if selected_chat %}
+        <div class="chat-header">
+            <h4>{{ selected_chat.contact.first_name }} {{ selected_chat.contact.last_name }}</h4>
+            <button id="createTaskBtn">Створити задачу</button>
+            <p>{{ selected_chat.contact.company.name }}</p>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            {% for interaction in interactions %}
+            <div class="message {% if interaction.sender == 'user' %}sent{% else %}received{% endif %}" data-interaction-id="{{ interaction.id }}">
+                <div class="message-content">
+                    {% if interaction.interaction_type == 'telegram' %}
+                        <p>{{ interaction.description }}</p>
+                    {% elif interaction.interaction_type == 'email' %}
+                        <p><strong>Email:</strong> {{ interaction.description }}</p>
+                        <p><small>Від: {{ interaction.contact_email.email|default:"Немає" }}</small></p>
+                    {% elif interaction.interaction_type == 'call' %}
+                        <p><strong>Дзвінок:</strong> {{ interaction.description|default:"Дзвінок" }}</p>
+                        {% if interaction.calls.first.recording_link %}
+                            <a href="{{ interaction.calls.first.recording_link }}">Запис дзвінка</a>
+                        {% endif %}
+                    {% elif interaction.interaction_type == 'system' %}
+                        <p><em>{{ interaction.description }}</em></p>
+                    {% endif %}
+                    <small>{{ interaction.date|date:"d.m.Y H:i" }}</small>
+                </div>
+            </div>
+            {% empty %}
+            <p>Немає повідомлень</p>
+            {% endfor %}
+        </div>
+
+        {% else %}
+        <p>Виберіть чат, щоб розпочати спілкування</p>
+        {% endif %}
+    </div>
+
+    <!-- Права частина: порожній блок -->
+    <div class="chat-info-sidebar">
+        <h3>Інформація</h3>
+        <p>Тут буде додаткова інформація</p>
+    </div>
+
+<div id="modalContainer"></div>
+</div>
+
+<style>
+.chat-container {
+    display: flex;
+    height: 100vh;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.chat-sidebar {
+    width: 25%;
+    border-right: 1px solid #ddd;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+.chat-list {
+    list-style: none;
+    padding: 0;
+}
+
+.chat-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.chat-item:hover, .chat-list li.active {
+    background-color: #f5f5f5;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.avatar-placeholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    color: #fff;
+}
+
+.chat-info {
+    flex: 1;
+}
+
+.chat-main {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #ddd;
+}
+
+.chat-header {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+.message {
+    margin-bottom: 15px;
+}
+
+.message.sent {
+    text-align: right;
+}
+
+.message.received {
+    text-align: left;
+}
+
+.message-content {
+    display: inline-block;
+    padding: 10px;
+    border-radius: 10px;
+    background-color: #f0f0f0;
+    max-width: 70%;
+}
+
+.message.sent .message-content {
+    background-color: #0084ff;
+    color: #fff;
+}
+
+.message-form {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #ddd;
+}
+
+.message-form textarea {
+    flex: 1;
+    resize: none;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.message-form button {
+    margin-left: 10px;
+    padding: 10px 20px;
+    background-color: #0084ff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+}
+
+.chat-info-sidebar {
+    width: 25%;
+    padding: 10px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chatId = {{ selected_chat.id|default:"null" }};
+    if (chatId) {
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        const wsUrl = `${wsProtocol}${window.location.host}/ws/chats/${chatId}/`;
+        console.log('WebSocket Chat URL:', wsUrl);
+
+        const socket = new WebSocket(wsUrl);
+
+        socket.onopen = function() {
+            console.log('WebSocket chat connected');
+        };
+
+        socket.onmessage = function(event) {
+            console.log('WebSocket chat message received:', event.data);
+            const data = JSON.parse(event.data);
+            if (data.type === 'update_chats') {
+                console.log('Updating chats:', data.chats);
+                const chatList = document.getElementById('chat-list');
+                chatList.innerHTML = '';
+                data.chats.forEach(chat => {
+                    console.log('Adding chat:', chat);
+                    const li = document.createElement('li');
+                    li.setAttribute('data-chat-id', chat.id);
+                    if (chatId && chat.id == chatId) {
+                        li.classList.add('active');
+                    }
+                    li.innerHTML = `
+                        <a href="/chats/${chat.id}/">
+                            <div class="chat-item">
+                                ${chat.avatar ? `<img src="${chat.avatar}" alt="${chat.contact_name}" class="avatar">` :
+                                `<div class="avatar-placeholder">${chat.contact_name[0]}</div>`}
+                                <div class="chat-info">
+                                    <strong>${chat.contact_name}</strong>
+                                    <p>${chat.company_name}</p>
+                                </div>
+                            </div>
+                        </a>
+                    `;
+                    chatList.appendChild(li);
+                });
+            } else if (data.type === 'update_interaction' && data.interaction) {
+                const messages = document.getElementById('chat-messages');
+                const interaction = data.interaction;
+                const existingMessage = document.querySelector(`.message[data-interaction-id="${interaction.id}"]`);
+                if (!existingMessage) {
+                    const div = document.createElement('div');
+                    div.className = `message ${interaction.sender === 'user' ? 'sent' : 'received'}`;
+                    div.setAttribute('data-interaction-id', interaction.id);
+                    let content = '';
+                    if (interaction.type === 'telegram') {
+                        content = `<p>${interaction.description}</p>`;
+                    } else if (interaction.type === 'email') {
+                        content = `<p><strong>Email:</strong> ${interaction.description}</p>`;
+                    } else if (interaction.type === 'call') {
+                        content = `<p><strong>Дзвінок:</strong> ${interaction.description}</p>`;
+                        if (interaction.recording_link) {
+                            content += `<a href="${interaction.recording_link}">Запис дзвінка</a>`;
+                        }
+                    } else if (interaction.type === 'system') {
+                        content = `<p><em>${interaction.description}</em></p>`;
+                    }
+                    div.innerHTML = `
+                        <div class="message-content">
+                            ${content}
+                            <small>${interaction.date}</small>
+                        </div>
+                    `;
+                    messages.appendChild(div);
+                    messages.scrollTop = messages.scrollHeight;
+                }
+            }
+        };
+
+        socket.onclose = function(event) {
+            console.log('WebSocket chat closed:', event);
+        };
+
+        socket.onerror = function(error) {
+            console.error('WebSocket chat error:', error);
+            console.log('WebSocket URL:', wsUrl);
+            console.log('WebSocket readyState:', socket.readyState);
+        };
+    }
+
+    // Логіка модального вікна
+    document.getElementById('createTaskBtn').addEventListener('click', function() {
+        fetch('/tasks/create/{{ selected_chat.id }}/')
+            .then(response => response.text())
+            .then(html => {
+                const modalContainer = document.getElementById('modalContainer');
+                modalContainer.innerHTML = html;
+                const modal = modalContainer.querySelector('.modal');
+                modal.style.display = 'flex';
+
+                // Закриття модального вікна
+                modal.querySelector('.close').addEventListener('click', function() {
+                    modal.style.display = 'none';
+                    modalContainer.innerHTML = '';
+                });
+
+                // Закриття при кліку поза модальним вікном
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        modal.style.display = 'none';
+                        modalContainer.innerHTML = '';
+                    }
+                });
+            });
+    });
+});
+</script>
+{% endblock %}

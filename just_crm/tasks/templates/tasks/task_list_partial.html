@@ -1,0 +1,15 @@
+{% for task in tasks %}
+    {% if not task.is_completed %}
+        <div class="kanban-task">
+            <p><strong>{{ task.get_task_type_display }}</strong>: {{ task.target }}</p>
+            <p>{{ task.contact.first_name }} {{ task.contact.last_name|default:'' }}</p>
+            <p>{{ task.contact.company.name|default_if_none:'' }}</p>
+            <p>{{ task.task_date|date:'d.m.Y H:i' }}</p>
+            <a href="#" class="edit-task" data-task-id="{{ task.id }}">Редагувати</a>
+            <a href="#">Завершити</a>
+            <a href="#" class="transfer-task" data-task-id="{{ task.id }}">Перенести</a>
+        </div>
+    {% endif %}
+{% empty %}
+    <p>Немає задач</p>
+{% endfor %}

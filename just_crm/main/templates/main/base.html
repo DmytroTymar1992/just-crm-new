@@ -1,0 +1,39 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CRM{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'main/css/base.css' %}">
+    {% block extra_css %}{% endblock %}
+    <script src="{% static 'main/js/base.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            {% if user.is_authenticated %}
+                <span class="user-info">
+                    {{ user.first_name }} {{ user.last_name }} ({{ user.get_role_display }}, {{ user.get_status_display }})
+                </span>
+                <a href="{% url 'logout' %}" class="logout-btn">Вийти</a>
+            {% else %}
+                <a href="{% url 'login' %}">Увійти</a>
+            {% endif %}
+        </div>
+    </header>
+    <div class="container">
+        {% block content %}
+        {% endblock %}
+    </div>
+    {% if user.is_authenticated %}
+        <script>
+            // Передаємо URL для логауту до JavaScript
+            const logoutUrl = "{% url 'logout' %}";
+            const inactivityTimeout =15* 60 * 1000; // 15 хвилин у мілісекундах
+        </script>
+    {% endif %}
+</body>
+</html>

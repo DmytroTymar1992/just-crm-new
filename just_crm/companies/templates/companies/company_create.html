@@ -1,0 +1,13 @@
+{% extends 'sales/base.html' %}
+
+{% block title %}Створити компанію{% endblock %}
+
+{% block content %}
+    <h1>Створити нову компанію</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-success">Зберегти</button>
+        <a href="{% url 'company_list' %}" class="btn btn-secondary">Скасувати</a>
+    </form>
+{% endblock %}

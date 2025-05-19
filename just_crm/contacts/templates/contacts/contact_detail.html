@@ -1,0 +1,43 @@
+{% extends 'sales/base.html' %}
+
+{% block title %}Деталі контакту: {{ contact.first_name }} {{ contact.last_name }}{% endblock %}
+
+{% block content %}
+    <h1>{{ contact.first_name }} {{ contact.last_name }}</h1>
+    <div class="card">
+        <div class="card-body">
+            {% if contact.avatar %}
+                <img src="{{ contact.avatar.url }}" alt="Аватар" class="avatar-img mb-3">
+            {% endif %}
+            {% if contact.company %}
+            <a href="{% url 'company_detail' contact.company.pk %}">
+                <p><strong>Компанія:</strong> {{ contact.company.name }}</p>
+            </a>
+            {% else %}
+                <p><strong>Компанія:</strong> Не належить до компанії </p>
+            {% endif %}
+
+            <p><strong>Посада:</strong> {{ contact.position|default:"—" }}</p>
+            <p><strong>Дата створення:</strong> {{ contact.created_at|date:"d.m.Y H:i" }}</p>
+            <h5>Телефони:</h5>
+            <ul>
+                {% for phone in contact.phones.all %}
+                    <li>{{ phone.name }}: {{ phone.phone|default:"—" }}
+                        {% if phone.telegram_username %} (Telegram: {{ phone.telegram_username }}) {% endif %}
+                    </li>
+                {% empty %}
+                    <li>Немає телефонів</li>
+                {% endfor %}
+            </ul>
+            <h5>Email:</h5>
+            <ul>
+                {% for email in contact.emails.all %}
+                    <li>{{ email.name }}: {{ email.email }}</li>
+                {% empty %}
+                    <li>Немає email</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <a href="{% url 'contact_list' %}" class="btn btn-secondary mt-3">Назад до списку</a>
+{% endblock %}

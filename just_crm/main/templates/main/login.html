@@ -1,0 +1,28 @@
+<!-- main/templates/main/login.html -->
+{% extends 'main/base.html' %}
+{% load static %}
+{% block title %}CRM - Login{% endblock %}
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'main/css/login.css' %}">
+{% endblock %}
+{% block content %}
+    <h2>Login to CRM</h2>
+    {% if form.errors %}
+        {% for error in form.non_field_errors %}
+            <p class="error">{{ error }}</p>
+        {% endfor %}
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" name="username" id="username" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" name="password" id="password" required>
+        </div>
+        <button type="submit" class="submit-btn">Login</button>
+    </form>
+    <p><a href="{% url 'home' %}">Back to Home</a></p>
+{% endblock %}

@@ -1,0 +1,229 @@
+{% extends 'sales/base.html' %}
+{% block content %}
+<h1>Kanban-дошка задач</h1>
+<div class="kanban-board">
+    <div class="kanban-column">
+        <h2>Протерміновані</h2>
+        <div class="kanban-tasks" id="overdue"><p>Завантаження...</p></div>
+    </div>
+    <div class="kanban-column">
+        <h2>Сьогодні</h2>
+        <div class="kanban-tasks" id="today"><p>Завантаження...</p></div>
+    </div>
+    <div class="kanban-column">
+        <h2>Завтра</h2>
+        <div class="kanban-tasks" id="tomorrow"><p>Завантаження...</p></div>
+    </div>
+    <div class="kanban-column">
+        <h2>На цьому тижні</h2>
+        <div class="kanban-tasks" id="this_week"><p>Завантаження...</p></div>
+    </div>
+</div>
+
+<div id="modalContainer"></div>
+
+<style>
+    .kanban-board { display: flex; gap: 20px; overflow-x: auto; padding: 20px; }
+    .kanban-column { flex: 1; min-width: 250px; background-color: #f4f4f4; border-radius: 5px; padding: 10px; }
+    .kanban-column h2 { text-align: center; margin-bottom: 10px; }
+    .kanban-tasks { min-height: 100px; }
+    .kanban-task { background-color: white; border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin-bottom: 10px; }
+    .kanban-task p { margin: 5px 0; }
+    .kanban-task a { margin-right: 10px; color: #007bff; }
+    .modal { position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; }
+    .modal-content { background-color: white; padding: 20px; border-radius: 5px; width: 400px; max-width: 90%; position: relative; }
+    .close { position: absolute; right: 10px; top: 10px; font-size: 20px; cursor: pointer; }
+    .error-messages { color: red; margin-bottom: 10px; }
+    .error-messages ul { list-style: none; padding: 0; }
+    .error-messages li { margin-bottom: 5px; }
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const modalContainer = document.getElementById('modalContainer');
+
+    function updateKanbanBoard() {
+        fetch('{% url 'kanban_tasks_api' %}')
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('overdue').innerHTML = data.overdue;
+                document.getElementById('today').innerHTML = data.today;
+                document.getElementById('tomorrow').innerHTML = data.tomorrow;
+                document.getElementById('this_week').innerHTML = data.this_week;
+                bindTaskButtons();
+            })
+            .catch(error => console.error('Error fetching tasks:', error));
+    }
+
+    function bindTaskButtons() {
+        document.querySelectorAll('.edit-task').forEach(button => {
+            button.onclick = handleEditTask;
+        });
+    }
+
+    function handleEditTask(e) {
+        e.preventDefault();
+        const taskId = this.getAttribute('data-task-id');
+        openModal(`/tasks/edit/${taskId}/`);
+    }
+
+    function openModal(url) {
+        fetch(url)
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                return response.text();
+            })
+            .then(html => {
+                modalContainer.innerHTML = html;
+                const modal = modalContainer.querySelector('.modal');
+                modal.style.display = 'flex';
+
+                const closeButton = modal.querySelector('.close');
+                if (closeButton) closeButton.onclick = () => closeModal(modal);
+
+                modal.onclick = e => { if (e.target === modal) closeModal(modal); };
+
+                const submitButton = modal.querySelector('.ajax-submit');
+                if (submitButton) submitButton.onclick = handleFormSubmit;
+
+                const completeButton = modal.querySelector('.complete-task');
+                if (completeButton) completeButton.onclick = handleCompleteTask;
+
+                const transferButton = modal.querySelector('.transfer-task');
+                if (transferButton) transferButton.onclick = handleTransferTask;
+
+                if (modal.id === 'taskConfirmNewModal') setupConfirmModal(modal);
+                if (modal.id === 'taskModal') setupCreateModal(modal);
+            })
+            .catch(error => console.error('Error loading modal:', error));
+    }
+
+    function closeModal(modal) {
+        modal.style.display = 'none';
+        modalContainer.innerHTML = '';
+        updateKanbanBoard();
+    }
+
+    function showError(modal, error) {
+        let errorDiv = modal.querySelector('.error-messages');
+        if (!errorDiv) {
+            errorDiv = document.createElement('div');
+            errorDiv.className = 'error-messages';
+            modal.querySelector('.modal-content').insertBefore(errorDiv, modal.querySelector('form'));
+        }
+        errorDiv.innerHTML = '<ul>' + (error.errors ? Object.entries(JSON.parse(error.errors)).map(([field, errors]) => errors.map(err => `<li>${field}: ${err.message}</li>`).join('')) : `<li>${error.error || 'Невідома помилка'}</li>`) + '</ul>';
+    }
+
+    function handleFormSubmit(e) {
+        e.preventDefault();
+        const form = this.closest('.ajax-form');
+        const modal = form.closest('.modal');
+        fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || ''
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) closeModal(modal);
+            else showError(modal, data);
+        })
+        .catch(error => {
+            console.error('Error submitting form:', error);
+            showError(modal, {error: 'Помилка відправки форми: ' + error.message});
+        });
+    }
+
+    function handleCompleteTask(e) {
+        e.preventDefault();
+        const taskId = this.getAttribute('data-task-id');
+        const modal = this.closest('.modal');
+        fetch(`/tasks/complete/${taskId}/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || ''
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.success && data.contact_id) {
+                closeModal(modal);
+                openConfirmNewModal(data.contact_id);
+            } else {
+                showError(modal, data);
+            }
+        })
+        .catch(error => {
+            console.error('Error completing task:', error);
+            showError(modal, {error: 'Помилка закриття задачі: ' + error.message});
+        });
+    }
+
+    function handleTransferTask(e) {
+        e.preventDefault();
+        const taskId = this.getAttribute('data-task-id');
+        closeModal(this.closest('.modal'));
+        openModal(`/tasks/transfer/${taskId}/`);
+    }
+
+    function openConfirmNewModal(contactId) {
+        fetch(`/tasks/confirm_new/${contactId}/`)
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                return response.text();
+            })
+            .then(html => {
+                modalContainer.innerHTML = html;
+                const modal = modalContainer.querySelector('.modal');
+                modal.style.display = 'flex';
+                setupConfirmModal(modal);
+            })
+            .catch(error => console.error('Error loading confirm modal:', error));
+    }
+
+    function setupConfirmModal(modal) {
+        const closeButton = modal.querySelector('.close');
+        if (closeButton) closeButton.onclick = () => closeModal(modal);
+
+        modal.onclick = e => { if (e.target === modal) closeModal(modal); };
+
+        const createNewTaskBtn = modal.querySelector('#create-new-task');
+        if (createNewTaskBtn) {
+            createNewTaskBtn.onclick = () => {
+                const contactId = createNewTaskBtn.getAttribute('data-contact-id');
+                openModal(`/tasks/create/?contact_id=${contactId}`);
+            };
+        }
+
+        const closeModalBtn = modal.querySelector('#close-modal');
+        if (closeModalBtn) closeModalBtn.onclick = () => closeModal(modal);
+    }
+
+    function setupCreateModal(modal) {
+        const closeButton = modal.querySelector('.close');
+        if (closeButton) closeButton.onclick = () => closeModal(modal);
+
+        modal.onclick = e => { if (e.target === modal) closeModal(modal); };
+
+        const submitButton = modal.querySelector('.ajax-submit');
+        if (submitButton) submitButton.onclick = handleFormSubmit;
+    }
+
+    updateKanbanBoard();
+    setInterval(updateKanbanBoard, 30000);
+});
+</script>
+{% endblock %}
