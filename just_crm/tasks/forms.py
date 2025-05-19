@@ -7,7 +7,10 @@ class TaskForm(forms.ModelForm):
     task_date = forms.DateTimeField(
         widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}),
         label="Дата задачі",
-        required=True
+        required=True,
+        error_messages={
+            'required': 'Будь ласка, вкажіть дату задачі.'
+        }
     )
 
     class Meta:
@@ -17,6 +20,14 @@ class TaskForm(forms.ModelForm):
             'task_type': 'Тип задачі',
             'target': 'Ціль',
             'description': 'Опис',
+        }
+        error_messages = {
+            'task_type': {
+                'required': 'Будь ласка, оберіть тип задачі.'
+            },
+            'target': {
+                'required': 'Будь ласка, вкажіть ціль.'
+            },
         }
         widgets = {
             'task_type': forms.Select(choices=Task.TASK_TYPE_CHOICES),
@@ -43,12 +54,18 @@ class TaskTransferForm(forms.Form):
         widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}),
         label="Нова дата",
         required=True,
-        input_formats=['%Y-%m-%dT%H:%M']
+        input_formats=['%Y-%m-%dT%H:%M'],
+        error_messages={
+            'required': 'Будь ласка, вкажіть нову дату.'
+        }
     )
     reason = forms.CharField(
         widget=forms.Textarea(attrs={'rows': 4}),
         label="Причина перенесення",
-        required=True
+        required=True,
+        error_messages={
+            'required': 'Будь ласка, вкажіть причину перенесення.'
+        }
     )
 
     def clean_to_date(self):

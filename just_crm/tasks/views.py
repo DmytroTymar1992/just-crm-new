@@ -77,39 +77,33 @@ def kanban_tasks_api(request):
 def create_task(request):
     if request.method == 'POST':
         contact_id = request.POST.get('contact_id')
-        task_type = request.POST.get('task_type')
-        target = request.POST.get('target')
-        task_date = request.POST.get('task_date')
-        description = request.POST.get('description')
 
-        try:
-            if not contact_id:
-                raise ValueError('Contact ID не вказано')
-            if not task_type:
-                raise ValueError('Task type не вказано')
-            if not target:
-                raise ValueError('Target не вказано')
-            if not task_date:
-                raise ValueError('Task date не вказано')
-            contact = Contact.objects.get(id=contact_id)
-            task = Task.objects.create(
-                user=request.user,
-                contact=contact,
-                task_type=task_type,
-                target=target,
-                task_date=timezone.datetime.strptime(task_date, '%Y-%m-%dT%H:%M'),
-                description=description or '',
-            )
-            return JsonResponse({'success': True})
-        except Contact.DoesNotExist:
-            logger.error(f"Contact not found: id={contact_id}")
-            return JsonResponse({'error': 'Контакт не знайдено'}, status=400)
-        except ValueError as e:
-            logger.error(f"Error in create_task: {str(e)}, POST data: {request.POST}")
-            return JsonResponse({'error': str(e)}, status=400)
-        except Exception as e:
-            logger.error(f"Unexpected error in create_task: {str(e)}, POST data: {request.POST}", exc_info=True)
-            return JsonResponse({'error': f'Невідома помилка: {str(e)}'}, status=500)
+        if not contact_id:
+            logger.error("No contact_id provided in POST request")
+            return JsonResponse({'error': 'Контакт не вказано'}, status=400)
+
+        form = TaskForm(request.POST)
+        if form.is_valid():
+            try:
+                contact = Contact.objects.get(id=contact_id)
+                task = form.save(commit=False)
+                task.user = request.user
+                task.contact = contact
+                task.save()
+                return JsonResponse({'success': True})
+            except Contact.DoesNotExist:
+                logger.error(f"Contact not found: id={contact_id}")
+                return JsonResponse({'error': 'Контакт не знайдено'}, status=400)
+            except Exception as e:
+                logger.error(f"Unexpected error in create_task: {str(e)}, POST data: {request.POST}", exc_info=True)
+                return JsonResponse({'error': f'Невідома помилка: {str(e)}'}, status=500)
+        else:
+            logger.error(f"Form errors in create_task: {form.errors}")
+            return JsonResponse({
+                'error': 'Некоректні дані форми',
+                'errors': form.errors.as_json(),
+                'labels': {name: field.label for name, field in form.fields.items()}
+            }, status=400)
 
     contact_id = request.GET.get('contact_id', '')
     if not contact_id:
@@ -141,7 +135,11 @@ def create_task_in_chat(request, chat_id):
             except ValueError as e:
                 logger.error(f"Error in create_task_in_chat: {str(e)}", exc_info=True)
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return JsonResponse({'error': str(e)}, status=400)
+                    return JsonResponse({
+                        'error': 'Некоректні дані форми',
+                        'errors': form.errors.as_json(),
+                        'labels': {name: field.label for name, field in form.fields.items()}
+                    }, status=400)
                 messages.error(request, f'Помилка: {str(e)}')
         else:
             logger.error(f"Form errors in create_task_in_chat: {form.errors}")
@@ -204,7 +202,11 @@ def edit_task(request, task_id):
             logger.error(f"Form errors in edit_task: {form.errors}")
             messages.error(request, 'Некоректні дані форми')
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'error': 'Некоректні дані форми', 'errors': form.errors.as_json()}, status=400)
+            return JsonResponse({
+                'error': 'Некоректні дані форми',
+                'errors': form.errors.as_json(),
+                'labels': {name: field.label for name, field in form.fields.items()}
+            }, status=400)
     else:
         form = TaskForm(instance=task)
     context = {
@@ -239,7 +241,11 @@ def transfer_task(request, task_id):
                 return JsonResponse({'error': str(e)}, status=400)
         else:
             logger.error(f"Form errors in transfer_task: {form.errors}, POST data: {request.POST}")
-            return JsonResponse({'error': 'Некоректні дані форми', 'errors': form.errors.as_json()}, status=400)
+            return JsonResponse({
+                'error': 'Некоректні дані форми',
+                'errors': form.errors.as_json(),
+                'labels': {name: field.label for name, field in form.fields.items()}
+            }, status=400)
     form = TaskTransferForm()
     context = {
         'form': form,

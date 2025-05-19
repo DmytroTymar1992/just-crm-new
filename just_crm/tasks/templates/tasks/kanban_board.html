@@ -114,7 +114,21 @@ document.addEventListener("DOMContentLoaded", function() {
             errorDiv.className = 'error-messages';
             modal.querySelector('.modal-content').insertBefore(errorDiv, modal.querySelector('form'));
         }
-        errorDiv.innerHTML = '<ul>' + (error.errors ? Object.entries(JSON.parse(error.errors)).map(([field, errors]) => errors.map(err => `<li>${field}: ${err.message}</li>`).join('')) : `<li>${error.error || 'Невідома помилка'}</li>`) + '</ul>';
+        if (error.errors) {
+            const errors = JSON.parse(error.errors);
+            const labels = error.labels || {};
+            let html = '<ul>';
+            Object.entries(errors).forEach(([field, errs]) => {
+                const label = labels[field] || field;
+                errs.forEach(err => {
+                    html += `<li>${label}: ${err.message}</li>`;
+                });
+            });
+            html += '</ul>';
+            errorDiv.innerHTML = html;
+        } else {
+            errorDiv.innerHTML = `<ul><li>${error.error || 'Невідома помилка'}</li></ul>`;
+        }
     }
 
     function handleFormSubmit(e) {
