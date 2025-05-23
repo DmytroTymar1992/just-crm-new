@@ -46,18 +46,27 @@ class Command(BaseCommand):
                 contact = None
                 contact_phone = None
 
-                # Шукаємо користувача CRM за telegram_id
-                user = await database_sync_to_async(lambda: User.objects.filter(telegram_id=telegram_chat_id).first())()
-                if user:
-                    logger.info(f"Found user {user.username}")
-                else:
-                    user = await database_sync_to_async(lambda: User.objects.filter(is_superuser=True).first())()
-                    if not user:
-                        logger.error("No admin user found")
-                        return
-                    logger.info(f"No user found, assigning to admin: {user.username}")
 
-                async def get_contact_phone():
+                # Визначаємо користувача CRM та тип відправника
+                user = await database_sync_to_async(lambda: User.objects.filter(telegram_id=telegram_user_id).first())()
+                if user:
+                    sender_type = 'user'
+                    logger.info(f"Message from CRM user {user.username}")
+                else:
+                    user = await database_sync_to_async(
+                        lambda: User.objects.filter(telegram_id=telegram_chat_id).first())()
+                    if user:
+                        sender_type = 'contact'
+                        logger.info(f"Message for CRM user {user.username}")
+                    else:
+                        user = await database_sync_to_async(lambda: User.objects.filter(is_superuser=True).first())()
+                        if not user:
+                            logger.error("No admin user found")
+                            return
+                        sender_type = 'contact'
+                        logger.info(f"No user found, assigning to admin: {user.username}")
+
+                def get_contact_phone():
                     q = (
                             ContactPhone.objects.filter(phone=phone_number)
                             | ContactPhone.objects.filter(telegram_id=telegram_chat_id)
@@ -103,9 +112,15 @@ class Command(BaseCommand):
                 ))()
 
                 interaction = await database_sync_to_async(lambda: Interaction.objects.create(
-                    user=user, chat=chat, contact=contact, contact_phone=contact_phone,
-                    interaction_type='telegram', sender='contact', description=text,
-                    date=timezone.now(), is_read=False
+                    user=user,
+                    chat=chat,
+                    contact=contact,
+                    contact_phone=contact_phone,
+                    interaction_type='telegram',
+                    sender=sender_type,
+                    description=text,
+                    date=timezone.now(),
+                    is_read=False,
                 ))()
 
                 message_type = 'mixed' if files else 'text'
