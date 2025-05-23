@@ -80,8 +80,22 @@ class MatrixTelegramClient:
                 sender = event.sender
                 telegram_chat_id = await self.get_room_alias(room.room_id)
                 if not telegram_chat_id:
-                    logger.error(f"Could not determine telegram_chat_id for room {room.room_id}")
-                    return
+                    if sender.startswith("@telegram_"):
+                        try:
+                            telegram_chat_id = sender.split(":", 1)[0].split("_", 1)[1]
+                            logger.info(
+                                f"Fallback telegram_chat_id {telegram_chat_id} parsed from sender {sender}"
+                            )
+                        except Exception as parse_exc:
+                            logger.error(
+                                f"Failed to parse telegram_chat_id from sender {sender}: {parse_exc}"
+                            )
+                            return
+                    else:
+                        logger.error(
+                            f"Could not determine telegram_chat_id for room {room.room_id}"
+                        )
+                        return
                 logger.info(f"Processing message from {telegram_chat_id} (message_id: {message_id}, chat_id: {telegram_chat_id})")
                 if isinstance(event, RoomMessageText):
                     await callback(telegram_chat_id, message_id, sender, {'text': event.body, 'files': []})
