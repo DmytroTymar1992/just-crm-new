@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     'emails',
     'sales',
     'tasks',
+    'sales_viber',
+    'sales_telegram',
 
     'channels',
 
@@ -191,3 +193,8 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+MATRIX_SERVER = 'https://matrix.just-crm.online'
+MATRIX_ADMIN_USERNAME = '@myadmin:matrix.just-crm.online'
+MATRIX_ADMIN_PASSWORD = 'S3cret!'
+MATRIX_TELEGRAM_BOT = '@telegrambot:matrix.just-crm.online'

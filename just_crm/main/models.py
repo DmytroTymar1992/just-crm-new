@@ -37,5 +37,14 @@ class CustomUser(AbstractUser):
         help_text=_('Internal Phonet extension number (e.g., 001)')
     )
 
+    telegram_id = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        unique=True,
+        verbose_name='Telegram ID',
+        help_text='Унікальний ID користувача в Telegram (наприклад, 123456789)'
+    )
+
     def __str__(self):
         return f"{self.username} ({self.get_role_display()}, {self.get_status_display()})"

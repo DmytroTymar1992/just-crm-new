@@ -1,15 +1,12 @@
 
-<div id="taskModal" class="modal" style="display:none;">
+<div id="taskConfirmNewModal" class="modal" style="display:none;">
     <div class="modal-content">
         <span class="close">×</span>
-        <h2>Створити нову задачу</h2>
-        <div class="error-messages"></div>
-        <form method="post" action="{% url 'create_task' %}" class="ajax-form">
-            {% csrf_token %}
-            <input type="hidden" name="contact_id" value="{{ contact_id|default:request.GET.contact_id }}">
-            {{ form.as_p }}
-            <button type="button" class="ajax-submit" data-action="create">Створити</button>
-        </form>
+        <p>Створити нову задачу для {{ contact.first_name }} {{ contact.last_name|default:'' }}?</p>
+        <div style="text-align: right; margin-top: 20px;">
+            <button type="button" id="create-new-task" data-contact-id="{{ contact.id }}">Так</button>
+            <button type="button" id="close-modal">Ні</button>
+        </div>
     </div>
 </div>
 
