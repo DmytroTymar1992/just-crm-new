@@ -3,41 +3,324 @@
 {% block title %}Деталі контакту: {{ contact.first_name }} {{ contact.last_name }}{% endblock %}
 
 {% block content %}
-    <h1>{{ contact.first_name }} {{ contact.last_name }}</h1>
-    <div class="card">
-        <div class="card-body">
-            {% if contact.avatar %}
-                <img src="{{ contact.avatar.url }}" alt="Аватар" class="avatar-img mb-3">
-            {% endif %}
-            {% if contact.company %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e7eb 100%);
+        min-height: 100vh;
+        margin: 0;
+        padding: 2rem 1rem;
+    }
+
+    .container {
+        position: relative;
+        max-width: 1200px;
+        height: 700px;
+        margin: 0 auto;
+        perspective: 1200px;
+    }
+
+    .card {
+        position: absolute;
+        background: #ffffff;
+        border-radius: 1rem;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        padding: 2.5rem;
+        width: 450px;
+        transition: transform 0.6s ease, z-index 0s, box-shadow 0.6s ease;
+        top: 0;
+        left: 50%;
+    }
+
+    .contact-card {
+        z-index: 2;
+        transform: translateX(-50%) translateY(0) rotateY(0deg);
+    }
+
+    .contact-card:hover {
+        z-index: 3;
+        transform: translateX(-50%) translateY(-10px) rotateY(0deg);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .chat-card {
+        z-index: 1;
+        transform: translateX(calc(-50% + 200px)) translateY(30px) rotateY(-15deg);
+        transform-origin: left center;
+    }
+
+    .chat-card:hover {
+        z-index: 3;
+        transform: translateX(-50%) translateY(-10px) rotateY(0deg);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .container:hover .contact-card:not(:hover) {
+        z-index: 1;
+        transform: translateX(calc(-50% - 200px)) translateY(30px) rotateY(15deg);
+        transform-origin: right center;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .container:hover .chat-card:not(:hover) {
+        z-index: 1;
+        transform: translateX(calc(-50% + 200px)) translateY(30px) rotateY(-15deg);
+        transform-origin: left center;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: #1a202c;
+        text-align: center;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(to right, #4b6cb7, #182848);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .avatar-img {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #4b6cb7;
+        margin: 0 auto 1rem;
+        display: block;
+        transition: transform 0.3s ease;
+    }
+
+    .avatar-img:hover {
+        transform: scale(1.05);
+    }
+
+    p, li {
+        font-size: 1.1rem;
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+        line-height: 1.5;
+    }
+
+    strong {
+        color: #2d3748;
+        font-weight: 600;
+    }
+
+    h5 {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #2b6cb0;
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    ul li {
+        padding: 0.3rem 0;
+        position: relative;
+        padding-left: 1.2rem;
+    }
+
+    ul li::before {
+        content: '•';
+        color: #4b6cb7;
+        font-size: 1.2rem;
+        position: absolute;
+        left: 0;
+        top: 0.2rem;
+    }
+
+    a {
+        color: #2b6cb0;
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+
+    a:hover {
+        color: #1a4971;
+        text-decoration: underline;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 0.75rem 1.25rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        text-align: center;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        margin-top: 1rem;
+        width: 100%;
+    }
+
+    .btn-secondary {
+        background: #e2e8f0;
+        color: #2d3748;
+    }
+
+    .btn-secondary:hover {
+        background: #cbd5e0;
+        transform: translateY(-2px);
+    }
+
+    .chat-content {
+        max-height: 500px;
+        overflow-y: auto;
+        background: #f7fafc;
+        border-radius: 0.75rem;
+        padding: 1rem;
+    }
+
+    .chat-message {
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        border-radius: 0.75rem;
+        max-width: 80%;
+        position: relative;
+        font-size: 1rem;
+        line-height: 1.4;
+    }
+
+    .chat-message.user {
+        background: #4b6cb7;
+        color: #ffffff;
+        margin-left: auto;
+        border-bottom-right-radius: 0;
+    }
+
+    .chat-message.contact {
+        background: #e2e8f0;
+        color: #2d3748;
+        margin-right: auto;
+        border-bottom-left-radius: 0;
+    }
+
+    .chat-message.system {
+        background: #fed7aa;
+        color: #7c2d12;
+        margin-right: auto;
+        border-bottom-left-radius: 0;
+    }
+
+    .chat-message .timestamp {
+        font-size: 0.85rem;
+        opacity: 0.7;
+        margin-top: 0.25rem;
+    }
+
+    .chat-message .type {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .chat-content::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .chat-content::-webkit-scrollbar-track {
+        background: #e2e8f0;
+        border-radius: 4px;
+    }
+
+    .chat-content::-webkit-scrollbar-thumb {
+        background: #4b6cb7;
+        border-radius: 4px;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+        animation: fadeIn 0.8s ease-in-out;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            height: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .card {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            transform: none !important;
+            margin-bottom: 1.5rem;
+            left: 0;
+            top: 0;
+        }
+
+        .contact-card, .chat-card {
+            z-index: 1;
+        }
+
+        .contact-card:hover, .chat-card:hover {
+            transform: translateY(-5px) !important;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        }
+    }
+</style>
+
+<div class="container">
+    <div class="contact-card card">
+        <h1>{{ contact.first_name }} {{ contact.last_name }}</h1>
+        {% if contact.avatar %}
+            <img src="{{ contact.avatar.url }}" alt="Аватар" class="avatar-img">
+        {% endif %}
+        {% if contact.company %}
             <a href="{% url 'company_detail' contact.company.pk %}">
                 <p><strong>Компанія:</strong> {{ contact.company.name }}</p>
             </a>
-            {% else %}
-                <p><strong>Компанія:</strong> Не належить до компанії </p>
-            {% endif %}
-
-            <p><strong>Посада:</strong> {{ contact.position|default:"—" }}</p>
-            <p><strong>Дата створення:</strong> {{ contact.created_at|date:"d.m.Y H:i" }}</p>
-            <h5>Телефони:</h5>
-            <ul>
-                {% for phone in contact.phones.all %}
-                    <li>{{ phone.name }}: {{ phone.phone|default:"—" }}
-                        {% if phone.telegram_username %} (Telegram: {{ phone.telegram_username }}) {% endif %}
-                    </li>
-                {% empty %}
-                    <li>Немає телефонів</li>
-                {% endfor %}
-            </ul>
-            <h5>Email:</h5>
-            <ul>
-                {% for email in contact.emails.all %}
-                    <li>{{ email.name }}: {{ email.email }}</li>
-                {% empty %}
-                    <li>Немає email</li>
-                {% endfor %}
-            </ul>
+        {% else %}
+            <p><strong>Компанія:</strong> Не належить до компанії </p>
+        {% endif %}
+        <p><strong>Посада:</strong> {{ contact.position|default:"—" }}</p>
+        <p><strong>Дата створення:</strong> {{ contact.created_at|date:"d.m.Y H:i" }}</p>
+        <h5>Телефони:</h5>
+        <ul>
+            {% for phone in contact.phones.all %}
+                <li>{{ phone.name }}: {{ phone.phone|default:"—" }}
+                    {% if phone.telegram_username %} (Telegram: {{ phone.telegram_username }}) {% endif %}
+                </li>
+            {% empty %}
+                <li>Немає телефонів</li>
+            {% endfor %}
+        </ul>
+        <h5>Email:</h5>
+        <ul>
+            {% for email in contact.emails.all %}
+                <li>{{ email.name }}: {{ email.email }}</li>
+            {% empty %}
+                <li>Немає email</li>
+            {% endfor %}
+        </ul>
+        <a href="{% url 'contact_list' %}" class="btn btn-secondary">Назад до списку</a>
+    </div>
+    <div class="chat-card card">
+        <h5>Взаємодії</h5>
+        <div class="chat-content">
+            {% for interaction in interactions %}
+                <div class="chat-message {{ interaction.sender }}">
+                    <div class="type">{{ interaction.interaction_type|title }}</div>
+                    <div>{{ interaction.description|default:"—" }}</div>
+                    <div class="timestamp">{{ interaction.date|date:"d.m.Y H:i" }}</div>
+                </div>
+            {% empty %}
+                <p>Немає взаємодій</p>
+            {% endfor %}
         </div>
     </div>
-    <a href="{% url 'contact_list' %}" class="btn btn-secondary mt-3">Назад до списку</a>
+</div>
 {% endblock %}

@@ -3,8 +3,225 @@
 {% block title %}Деталі компанії: {{ company.name }}{% endblock %}
 
 {% block content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    body {
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e4e7eb 100%);
+        min-height: 100vh;
+        margin: 0;
+        padding: 2rem 1rem;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        overflow: hidden;
+    }
+
+    h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1a202c;
+        text-align: center;
+        margin-bottom: 2rem;
+        background: linear-gradient(to right, #4b6cb7, #182848);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: fadeIn 0.8s ease-in-out;
+    }
+
+    .card {
+        background: #ffffff;
+        border-radius: 1rem;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        padding: 2.5rem;
+        margin-bottom: 2rem;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .card p {
+        font-size: 1.1rem;
+        color: #4a5568;
+        margin-bottom: 0.75rem;
+        line-height: 1.5;
+    }
+
+    .card strong {
+        color: #2d3748;
+        font-weight: 600;
+    }
+
+    h2 {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #2b6cb0;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        position: relative;
+        animation: fadeIn 0.8s ease-in-out;
+    }
+
+    h2::after {
+        content: '';
+        width: 50px;
+        height: 3px;
+        background: #4b6cb7;
+        position: absolute;
+        bottom: -5px;
+        left: 0;
+    }
+
+    .table-container {
+        background: #ffffff;
+        border-radius: 1rem;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        margin-bottom: 2rem;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 1rem;
+        color: #4a5568;
+    }
+
+    .table th {
+        background: #f7fafc;
+        color: #2d3748;
+        font-weight: 600;
+        padding: 1rem;
+        text-align: left;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    .table td {
+        padding: 1rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .table tr {
+        transition: background 0.2s ease;
+    }
+
+    .table tr:hover {
+        background: #f1f5f9;
+        cursor: pointer;
+    }
+
+    .table a {
+        color: #2b6cb0;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+    }
+
+    .table a:hover {
+        color: #1a4971;
+        text-decoration: underline;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        text-align: center;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        margin: 0.5rem 0;
+    }
+
+    .btn-primary {
+        background: #4b6cb7;
+        color: #ffffff;
+    }
+
+    .btn-primary:hover {
+        background: #3b5ca0;
+        transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+        background: #e2e8f0;
+        color: #2d3748;
+    }
+
+    .btn-secondary:hover {
+        background: #cbd5e0;
+        transform: translateY(-2px);
+    }
+
+    .table-container::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .table-container::-webkit-scrollbar-track {
+        background: #e2e8f0;
+        border-radius: 4px;
+    }
+
+    .table-container::-webkit-scrollbar-thumb {
+        background: #4b6cb7;
+        border-radius: 4px;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card, .table-container, .btn {
+        animation: fadeIn 0.8s ease-in-out;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            padding: 0 0.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+        }
+
+        .card {
+            padding: 1.5rem;
+        }
+
+        .table-container {
+            max-height: 300px;
+        }
+
+        .table th, .table td {
+            padding: 0.75rem;
+            font-size: 0.95rem;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.75rem;
+        }
+    }
+</style>
+
+<div class="container">
     <h1>{{ company.name }}</h1>
-    <div class="card mb-3">
+    <div class="card">
         <div class="card-body">
             <p><strong>Work ID:</strong> {{ company.work_id|default:"—" }}</p>
             <p><strong>Rabota ID:</strong> {{ company.rabota_id|default:"—" }}</p>
@@ -16,32 +233,34 @@
     </div>
 
     <h2>Контакти компанії</h2>
-    <a href="{% url 'contact_create' %}?company_id={{ company.pk }}" class="btn btn-primary mb-3">Додати контакт</a>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Ім’я</th>
-                <th>Прізвище</th>
-                <th>Посада</th>
-                <th>Дата створення</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for contact in contacts %}
+    <a href="{% url 'contact_create' %}?company_id={{ company.pk }}" class="btn btn-primary">Додати контакт</a>
+    <div class="table-container">
+        <table class="table">
+            <thead>
                 <tr>
-                    <td><a href="{% url 'contact_detail' contact.pk %}">{{ contact.first_name }}</a></td>
-                    <td>{{ contact.last_name }}</td>
-                    <td>{{ contact.position|default:"—" }}</td>
-                    <td>{{ contact.created_at|date:"d.m.Y H:i" }}</td>
+                    <th>Ім’я</th>
+                    <th>Прізвище</th>
+                    <th>Посада</th>
+                    <th>Дата створення</th>
                 </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="4">Немає контактів</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <a></a>
+            </thead>
+            <tbody>
+                {% for contact in contacts %}
+                    <tr onclick="window.location='{% url 'contact_detail' contact.pk %}';">
+                        <td><a href="{% url 'contact_detail' contact.pk %}">{{ contact.first_name }}</a></td>
+                        <td>{{ contact.last_name }}</td>
+                        <td>{{ contact.position|default:"—" }}</td>
+                        <td>{{ contact.created_at|date:"d.m.Y H:i" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4">Немає контактів</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-    <a href="{% url 'company_list' %}" class="btn btn-secondary mt-3">Назад до списку</a>
+    <a href="{% url 'company_list' %}" class="btn btn-secondary">Назад до списку</a>
+</div>
 {% endblock %}

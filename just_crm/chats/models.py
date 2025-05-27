@@ -17,6 +17,7 @@ class Interaction(models.Model):
         TELEGRAM = 'telegram', 'Telegram'
         EMAIL = 'email', 'Email'
         CALL = 'call', 'Call'
+        VIBER = 'viber', 'Viber'
         SYSTEM = 'system', 'System'
 
     class SenderType(models.TextChoices):

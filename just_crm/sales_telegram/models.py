@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from main.models import CustomUser
 from chats.models import Interaction, Chat
 from contacts.models import Contact, ContactPhone
 
@@ -14,12 +15,7 @@ class TelegramMessage(models.Model):
         related_name='telegram_messages',
         verbose_name='Взаємодія'
     )
-    chat = models.ForeignKey(
-        Chat,
-        on_delete=models.CASCADE,
-        related_name='telegram_messages',
-        verbose_name='Чат'
-    )
+
     contact = models.ForeignKey(
         Contact,
         on_delete=models.CASCADE,
@@ -34,22 +30,49 @@ class TelegramMessage(models.Model):
         related_name='telegram_messages',
         verbose_name='Номер телефону'
     )
-    telegram_chat_id = models.CharField(
-        max_length=100,
-        verbose_name='Telegram Chat ID',
-        help_text='ID чату в Telegram (наприклад, -1001234567890)'
+
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='telegram_messages',
+        verbose_name='Користувач'
     )
-    message_id = models.CharField(
+
+    media_url = models.URLField(
+        null=True, blank=True,
+        verbose_name='URL медіа-файлу'
+    )
+    media_type = models.CharField(
+        max_length=20, null=True, blank=True,
+        choices=[
+            ('image', 'Image'),
+            ('video', 'Video'),
+            ('file', 'File'),
+            ('sticker', 'Sticker')
+        ],
+        verbose_name='Тип медіа'
+    )
+
+    echat_message_id = models.CharField(
         max_length=100,
         verbose_name='Message ID',
-        help_text='Унікальний ID повідомлення в Telegram'
+        help_text='Унікальний ID повідомлення в Telegram',
+        blank=True,
+        null=True
     )
-    message_type = models.CharField(
-        max_length=20,
-        choices=MessageType.choices,
-        default=MessageType.TEXT,
-        verbose_name='Тип повідомлення'
+    delivery_status = models.CharField(
+        max_length=12, db_index=True,
+        choices=[
+            ('pending', 'Очікує'),
+            ('sent', 'Надіслано'),
+            ('delivered', 'Доставлено'),
+            ('read', 'Прочитано'),
+            ('failed', 'Помилка')
+        ],
+        default='pending',
+        verbose_name='Статус доставки'
     )
+
     text = models.TextField(
         verbose_name='Текст повідомлення',
         blank=True
@@ -59,10 +82,16 @@ class TelegramMessage(models.Model):
         verbose_name='Дата',
         db_index=True
     )
-    is_read = models.BooleanField(
-        default=False,
-        verbose_name='Прочитано'
+    error_code = models.CharField(
+        max_length=100, null=True, blank=True,
+        verbose_name='Код/опис помилки'
     )
+
+    raw_event = models.JSONField(
+        verbose_name='Сирий payload веб-хука',
+        help_text='Зберігайте тут повний JSON, тоді нові поля веб-хука не зламають парсер.'
+    )
+
 
     class Meta:
         verbose_name = 'Повідомлення Telegram'
@@ -71,7 +100,7 @@ class TelegramMessage(models.Model):
 
     def __str__(self):
         sender = self.interaction.user.username if self.interaction.sender == 'user' else f"{self.contact.first_name} {self.contact.last_name or ''}"
-        return f"Повідомлення від {sender} в {self.telegram_chat_id} ({self.date})"
+        return f"Повідомлення від {sender} ({self.date})"
 
 
 class TelegramMessageMedia(models.Model):

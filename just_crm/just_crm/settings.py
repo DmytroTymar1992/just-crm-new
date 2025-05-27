@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-(o1gbl)c@6vd(%8-t=fveibv!om+fiy6^rf=zkbe^#y2qroipb
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['185.233.117.107', 'localhost']
+ALLOWED_HOSTS = ['185.233.117.107', 'localhost', 'just-crm.online', 'www.just-crm.online',]
 
 
 # Application definition
@@ -46,12 +46,16 @@ INSTALLED_APPS = [
     'emails',
     'sales',
     'tasks',
-    'sales_viber',
-    'sales_telegram',
+    'sales_viber.apps.SalesViberConfig',
+    'sales_telegram.apps.SalesTelegramConfig',
 
     'channels',
+    'rest_framework',
+
 
 ]
+
+
 
 AUTH_USER_MODEL = 'main.CustomUser'
 
@@ -198,3 +202,62 @@ MATRIX_SERVER = 'https://matrix.just-crm.online'
 MATRIX_ADMIN_USERNAME = '@myadmin:matrix.just-crm.online'
 MATRIX_ADMIN_PASSWORD = 'S3cret!'
 MATRIX_TELEGRAM_BOT = '@telegrambot:matrix.just-crm.online'
+
+
+import os
+import logging
+import logging.config
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+
+    # -----------------------------------------------------------------
+    # 1. Хендлери
+    # -----------------------------------------------------------------
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "level": "DEBUG",          # <-- мінімальний рівень у консоль
+            "formatter": "verbose",
+        },
+    },
+
+    # -----------------------------------------------------------------
+    # 2. Форматери
+    # -----------------------------------------------------------------
+    "formatters": {
+        "verbose": {
+            "format": "[{asctime}] {levelname:<7} {name}: {message}",
+            "style": "{",
+            "datefmt": "%H:%M:%S",
+        },
+    },
+
+    # -----------------------------------------------------------------
+    # 3. Логери
+    # -----------------------------------------------------------------
+    "loggers": {
+        # увесь ваш проєкт (за бажанням можна понизити до INFO)
+        "": {
+            "handlers": ["console"],
+            "level": "INFO",
+        },
+        # --- CHANGE: вмикаємо DEBUG саме для нашого пакета ------------
+        "sales_telegram": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,        # щоб не дублювалося у ""-логер
+        },
+        "sales_viber.api": {      # увесь діалог із E-chat
+                "handlers": ["console"],
+                "level": "DEBUG",
+                "propagate": False,
+        },
+    },
+}
+
+
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
+CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/0'
+CELERY_TIMEZONE = TIME_ZONE          # вже є UTC

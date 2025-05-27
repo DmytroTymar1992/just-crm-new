@@ -2,6 +2,7 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.db.models import Max
+from django.template.loader import render_to_string
 
 # Імпорти моделей залишаємо, оскільки asgi.py виправлено
 from chats.models import Chat, Interaction
@@ -56,12 +57,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
     # Обробка повідомлення про нову взаємодію
     async def update_interaction(self, event):
         print(f"WebSocket sending update_interaction event for interaction {event['interaction_id']}")
-        interaction = await self.get_interaction(event['interaction_id'])
-        await self.send(text_data=json.dumps({
-            'type': 'update_interaction',
-            'interaction': interaction
-        }))
-        print(f"WebSocket sent update_interaction: {interaction}")
+        interaction_html = await self.get_interaction_html(event['interaction_id'])
+        if interaction_html:
+            await self.send(text_data=json.dumps({
+                'type': 'update_interaction',
+                'interaction_id': event['interaction_id'],
+                'html': interaction_html
+            }))
+            print(f"WebSocket sent update_interaction with HTML for ID {event['interaction_id']}")
+        else:
+            print(f"Failed to send update_interaction: Interaction {event['interaction_id']} not found")
 
 
 
@@ -81,22 +86,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
         return chat_list
 
     @database_sync_to_async
-    def get_interaction(self, interaction_id):
-        interaction = Interaction.objects.filter(id=interaction_id).select_related('contact', 'contact_phone').first()
-        if not interaction:
-            print(f"Interaction {interaction_id} not found")
+    def get_interaction_html(self, interaction_id):
+        try:
+            interaction = Interaction.objects.filter(id=interaction_id).select_related('contact',
+                                                                                       'contact_phone').prefetch_related(
+                'viber_messages', 'calls').first()
+            if not interaction:
+                print(f"Interaction {interaction_id} not found")
+                return None
+            # Рендеримо HTML із шаблону interaction_item.html
+            html = render_to_string('chats/interaction_item.html', {'interaction': interaction})
+            return html
+        except Exception as e:
+            print(f"Error rendering interaction {interaction_id}: {str(e)}")
             return None
-        result = {
-            'id': interaction.id,
-            'type': interaction.interaction_type,
-            'sender': interaction.sender,
-            'description': interaction.description,
-            'date': interaction.date.strftime('%d.%m.%Y %H:%M'),
-            'contact_phone': interaction.contact_phone.phone if interaction.contact_phone else None,
-            'recording_link': interaction.calls.first().recording_link if interaction.interaction_type == 'call' and interaction.calls.exists() else None,
-        }
-        print(f"get_interaction returned for ID {interaction_id}: {result}")
-        return result
 
 
 class NotificationConsumer(AsyncWebsocketConsumer):

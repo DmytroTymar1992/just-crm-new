@@ -38,24 +38,7 @@
         </div>
         <div class="chat-messages" id="chat-messages">
             {% for interaction in interactions %}
-            <div class="message {% if interaction.sender == 'user' %}sent{% else %}received{% endif %}" data-interaction-id="{{ interaction.id }}">
-                <div class="message-content">
-                    {% if interaction.interaction_type == 'telegram' %}
-                        <p>{{ interaction.description }}</p>
-                    {% elif interaction.interaction_type == 'email' %}
-                        <p><strong>Email:</strong> {{ interaction.description }}</p>
-                        <p><small>Від: {{ interaction.contact_email.email|default:"Немає" }}</small></p>
-                    {% elif interaction.interaction_type == 'call' %}
-                        <p><strong>Дзвінок:</strong> {{ interaction.description|default:"Дзвінок" }}</p>
-                        {% if interaction.calls.first.recording_link %}
-                            <a href="{{ interaction.calls.first.recording_link }}">Запис дзвінка</a>
-                        {% endif %}
-                    {% elif interaction.interaction_type == 'system' %}
-                        <p><em>{{ interaction.description }}</em></p>
-                    {% endif %}
-                    <small>{{ interaction.date|date:"d.m.Y H:i" }}</small>
-                </div>
-            </div>
+            {% include 'chats/interaction_item.html' with interaction=interaction %}
             {% empty %}
             <p>Немає повідомлень</p>
             {% endfor %}
@@ -64,6 +47,15 @@
         {% else %}
         <p>Виберіть чат, щоб розпочати спілкування</p>
         {% endif %}
+        {% if selected_chat %}
+    … existing messages …
+    <!-- ===== НОВИЙ блок ===== -->
+    <form id="sendForm" class="message-form">
+        {% csrf_token %}
+        <textarea id="msgInput" rows="2" placeholder="Напишіть повідомлення…"></textarea>
+        <button type="submit">Send</button>
+    </form>
+{% endif %}
     </div>
 
     <!-- Права частина: порожній блок -->
@@ -200,17 +192,57 @@
     padding: 10px;
 }
 </style>
+<script>
+  const chatId  = {{ selected_chat.id|default:"null" }};
+  const sendUrl = chatId ? "{% url 'chat-send-message' selected_chat.id %}" : null;
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  if (!chatId) return; // немає вибраного чату
+
+  const form = document.getElementById('sendForm');
+  if (!form) return; // форми теж може не бути
+  const input = document.getElementById('msgInput');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+
+    // Надсилаємо повідомлення в бекенд
+    const resp = await fetch(sendUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      },
+      body: JSON.stringify({ text })
+    });
+
+    if (!resp.ok) {
+      // Показуємо помилку, якщо відправка не вдалася
+      alert('Помилка відправки (HTTP ' + resp.status + ')');
+    }
+    // WebSocket сам додасть повідомлення через update_interaction
+  });
+});
+</script>
+
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const chatId = {{ selected_chat.id|default:"null" }};
     const modalContainer = document.getElementById('modalContainer');
 
+    // Функція для закриття модального вікна
     function closeModal(modal) {
         modal.style.display = 'none';
         modalContainer.innerHTML = '';
     }
 
+    // Функція для показу помилок у модальному вікні
     function showError(modal, error) {
         let errorDiv = modal.querySelector('.error-messages');
         if (!errorDiv) {
@@ -235,6 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Функція для обробки відправки форми
     function handleFormSubmit(e) {
         e.preventDefault();
         const form = this.closest('.ajax-form');
@@ -261,6 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showError(modal, {error: 'Помилка відправки форми: ' + error.message});
         });
     }
+
     if (chatId) {
         const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
         const wsUrl = `${wsProtocol}${window.location.host}/ws/chats/${chatId}/`;
@@ -300,34 +334,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
                     chatList.appendChild(li);
                 });
-            } else if (data.type === 'update_interaction' && data.interaction) {
+            } else if (data.type === 'update_interaction' && data.interaction_id && data.html) {
                 const messages = document.getElementById('chat-messages');
-                const interaction = data.interaction;
-                const existingMessage = document.querySelector(`.message[data-interaction-id="${interaction.id}"]`);
-                if (!existingMessage) {
-                    const div = document.createElement('div');
-                    div.className = `message ${interaction.sender === 'user' ? 'sent' : 'received'}`;
-                    div.setAttribute('data-interaction-id', interaction.id);
-                    let content = '';
-                    if (interaction.type === 'telegram') {
-                        content = `<p>${interaction.description}</p>`;
-                    } else if (interaction.type === 'email') {
-                        content = `<p><strong>Email:</strong> ${interaction.description}</p>`;
-                    } else if (interaction.type === 'call') {
-                        content = `<p><strong>Дзвінок:</strong> ${interaction.description}</p>`;
-                        if (interaction.recording_link) {
-                            content += `<a href="${interaction.recording_link}">Запис дзвінка</a>`;
-                        }
-                    } else if (interaction.type === 'system') {
-                        content = `<p><em>${interaction.description}</em></p>`;
-                    }
-                    div.innerHTML = `
-                        <div class="message-content">
-                            ${content}
-                            <small>${interaction.date}</small>
-                        </div>
-                    `;
-                    messages.appendChild(div);
+                const existingMessage = document.querySelector(`.message[data-interaction-id="${data.interaction_id}"]`);
+                if (existingMessage) {
+                    // Оновлюємо існуючу взаємодію (наприклад, статус доставки)
+                    existingMessage.outerHTML = data.html;
+                } else {
+                    // Додаємо нову взаємодію
+                    messages.insertAdjacentHTML('beforeend', data.html);
                     messages.scrollTop = messages.scrollHeight;
                 }
             }
@@ -347,16 +362,28 @@ document.addEventListener('DOMContentLoaded', function() {
     // Логіка модального вікна
     document.getElementById('createTaskBtn').addEventListener('click', function() {
         fetch('/tasks/create/{{ selected_chat.id }}/')
-            .then(response => response.text())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch modal content');
+                }
+                return response.text();
+            })
             .then(html => {
                 modalContainer.innerHTML = html;
                 const modal = modalContainer.querySelector('.modal');
+                if (!modal) {
+                    console.error('Modal element not found in fetched HTML');
+                    return;
+                }
                 modal.style.display = 'flex';
 
                 // Закриття модального вікна
-                modal.querySelector('.close').addEventListener('click', function() {
-                    closeModal(modal);
-                });
+                const closeButton = modal.querySelector('.close');
+                if (closeButton) {
+                    closeButton.addEventListener('click', function() {
+                        closeModal(modal);
+                    });
+                }
 
                 // Закриття при кліку поза модальним вікном
                 modal.addEventListener('click', function(e) {
@@ -364,8 +391,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         closeModal(modal);
                     }
                 });
+
+                // Обробка відправки форми
                 const submitButton = modal.querySelector('.ajax-submit');
-                if (submitButton) submitButton.addEventListener('click', handleFormSubmit);
+                if (submitButton) {
+                    submitButton.addEventListener('click', handleFormSubmit);
+                } else {
+                    console.warn('Submit button (.ajax-submit) not found in modal');
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching modal:', error);
+                alert('Помилка завантаження форми створення задачі');
             });
     });
 });

@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from contacts.models import Contact
 from .forms import ContactForm, ContactPhoneFormSet, ContactEmailFormSet
 from companies.models import Company
+from chats.models import Interaction
 
 
 @login_required
@@ -49,4 +50,8 @@ def contact_create(request):
 @login_required
 def contact_detail(request, pk):
     contact = get_object_or_404(Contact, pk=pk)
-    return render(request, 'contacts/contact_detail.html', {'contact': contact})
+    interactions = Interaction.objects.filter(contact=contact).order_by('date')
+    return render(request, 'contacts/contact_detail.html', {
+        'contact': contact,
+        'interactions': interactions
+    })

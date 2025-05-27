@@ -1,6 +1,9 @@
+# sales_viber/apps.py
 from django.apps import AppConfig
 
 
 class SalesViberConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
     name = 'sales_viber'
+
+    def ready(self):
+        import sales_viber.signals

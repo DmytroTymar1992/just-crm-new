@@ -1,0 +1,32 @@
+<div class="message {% if interaction.sender == 'user' %}sent{% else %}received{% endif %}" data-interaction-id="{{ interaction.id }}">
+    <div class="message-content">
+        {% if interaction.interaction_type == 'telegram' %}
+            <p>{{ interaction.description }}</p>
+        {% elif interaction.interaction_type == 'viber' %}
+            {% if interaction.viber_messages.first.delivery_status == 'failed' %}
+                <p>{{ interaction.viber_messages.first.text }}</p>
+                <p title="{{ interaction.viber_messages.first.error_code }}">❗️Помилка</p>
+            {% elif interaction.viber_messages.first.delivery_status == 'pending'%}
+                <p>{{ interaction.viber_messages.first.text }}</p>
+                <p>Очікує</p>
+            {% elif interaction.viber_messages.first.delivery_status == 'sent'%}
+                <p>{{ interaction.viber_messages.first.text }}</p>
+                <p>Надіслано</p>
+            {% elif interaction.viber_messages.first.delivery_status == 'delivered'%}
+                <p>{{ interaction.viber_messages.first.text }}</p>
+                <p>Доставлено</p>
+            {% endif %}
+        {% elif interaction.interaction_type == 'email' %}
+            <p><strong>Email:</strong> {{ interaction.description }}</p>
+            <p><small>Від: {{ interaction.contact_email.email|default:"Немає" }}</small></p>
+        {% elif interaction.interaction_type == 'call' %}
+            <p><strong>Дзвінок:</strong> {{ interaction.description|default:"Дзвінок" }}</p>
+            {% if interaction.calls.first.recording_link %}
+                <a href="{{ interaction.calls.first.recording_link }}">Запис дзвінка</a>
+            {% endif %}
+        {% elif interaction.interaction_type == 'system' %}
+            <p><em>{{ interaction.description }}</em></p>
+        {% endif %}
+        <small>{{ interaction.date|date:"d.m.Y H:i" }}</small>
+    </div>
+</div>

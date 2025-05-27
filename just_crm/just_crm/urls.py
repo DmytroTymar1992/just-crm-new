@@ -13,6 +13,8 @@ urlpatterns = [
     path('calls/', include('calls.urls')),
     path('chats/', include('chats.urls')),
     path('tasks/', include('tasks.urls')),
+    path('integrations/echat/viber/', include('sales_viber.urls')),
+    path('integrations/echat/telegram/', include('sales_telegram.urls')),
 ]
 
 # Додаємо маршрути для статичних і медіа-файлів під час розробки

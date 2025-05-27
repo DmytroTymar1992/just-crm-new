@@ -133,34 +133,34 @@ def phonet_webhook(request):
                     recording_link=recording_link
                 )
 
-                # Надсилаємо сповіщення про нову взаємодію
-                channel_layer = get_channel_layer()
+            # Надсилаємо сповіщення про нову взаємодію
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f'chat_{chat.id}',
+                {
+                    'type': 'update_interaction',
+                    'interaction_id': interaction.id,
+                }
+            )
+
+            # Надсилаємо сповіщення про оновлення списку чатів
+            async_to_sync(channel_layer.group_send)(
+                f'user_{user.id}_chats',
+                {'type': 'update_chats'}
+            )
+
+            # Надсилаємо пуш-сповіщення
+            if lg_direction == 4:  # Вхідний дзвінок
                 async_to_sync(channel_layer.group_send)(
-                    f'chat_{chat.id}',
+                    f'user_{user.id}_notifications',
                     {
-                        'type': 'update_interaction',
-                        'interaction_id': interaction.id,
+                        'type': 'show_notification',
+                        'chat_id': chat.id,
+                        'contact_name': f"{contact.first_name} {contact.last_name or ''}",
+                        'company_name': contact.company.name if contact.company else '',
+                        'message': 'Новий дзвінок'
                     }
                 )
-
-                # Надсилаємо сповіщення про оновлення списку чатів
-                async_to_sync(channel_layer.group_send)(
-                    f'user_{user.id}_chats',
-                    {'type': 'update_chats'}
-                )
-
-                # Надсилаємо пуш-сповіщення
-                if lg_direction == 4:  # Вхідний дзвінок
-                    async_to_sync(channel_layer.group_send)(
-                        f'user_{user.id}_notifications',
-                        {
-                            'type': 'show_notification',
-                            'chat_id': chat.id,
-                            'contact_name': f"{contact.first_name} {contact.last_name or ''}",
-                            'company_name': contact.company.name if contact.company else '',
-                            'message': 'Новий дзвінок'
-                        }
-                    )
 
             return JsonResponse({'status': 'success'}, status=200)
 

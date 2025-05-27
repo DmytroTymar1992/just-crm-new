@@ -44,7 +44,9 @@ class Contact(models.Model):
         verbose_name_plural = _('Контакти')
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name} ({self.company.name})"
+        company_name = self.company.name if self.company else "Без компанії"
+        last_name = self.last_name or ""  # Обробка випадку, якщо last_name є None
+        return f"{self.first_name} {last_name} ({company_name})"
 
 
 class ContactPhone(models.Model):
@@ -78,9 +80,25 @@ class ContactPhone(models.Model):
         null=True
     )
 
+    has_viber = models.BooleanField(
+        default=True,
+        verbose_name=_('Є у Viber'),
+        help_text=_('false — гарантовано немає Viber; true — або є, або ще не перевірено')
+    )
+    viber_id = models.CharField(
+        max_length=50, blank=True, null=True,
+        verbose_name=_('Viber ID / number'),
+        help_text=_('Поле `from` / `to` з веб-хука; зберігаємо як рядок')
+    )
+    viber_name = models.CharField(
+        max_length=255, blank=True, null=True,
+        verbose_name=_('Ім’я у Viber')
+    )
+
     class Meta:
         verbose_name = _('Телефон контакту')
         verbose_name_plural = _('Телефони контактів')
+
 
     def __str__(self):
         return f"{self.contact} - {self.phone or self.telegram_username or 'No phone'}"
@@ -100,6 +118,7 @@ class ContactEmail(models.Model):
         verbose_name=_('Назва'),
         default='Основний'
     )
+
 
     class Meta:
         verbose_name = _('Email контакту')
