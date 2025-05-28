@@ -1,10 +1,8 @@
-# sales_viber/services.py
 from django.utils import timezone
-from contacts.utils import normalize_phone_number
 from contacts.models import Contact, ContactPhone
 from chats.models import Chat, Interaction
 from .models import TelegramMessage
-from .tasks import send_viber_message
+from .tasks import send_telegram_message
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
@@ -12,24 +10,19 @@ def get_or_create_chat(user, contact):
     from chats.models import Chat
     chat, _ = Chat.objects.get_or_create(
         user=user, contact=contact,
-        defaults={"title": f"Viber: {contact.first_name}"}
+        defaults={"title": f"Telegram: {contact.first_name}"}
     )
     return chat
 
-
 def send_text_in_chat(user, chat: Chat, text: str) -> TelegramMessage:
-    """
-    Використовує існуючий Chat ⇒ контакт ⇒ телефон,
-    створює Interaction + TelegramMessage(pending) + Celery-таску.
-    """
-    phone = chat.contact.phones.first()          # 1-й номер контакту
-    if not phone:
-        raise ValueError("У контакта немає телефону")
+    phone = chat.contact.phones.first()
+    if not phone or not phone.telegram_id:
+        raise ValueError("У контакта немає Telegram ID")
 
     inter = Interaction.objects.create(
         user=user, chat=chat, contact=chat.contact,
         contact_phone=phone, date=timezone.now(),
-        interaction_type='viber', sender='user', is_read=True
+        interaction_type='telegram', sender='user', is_read=True
     )
 
     msg = TelegramMessage.objects.create(
@@ -40,7 +33,6 @@ def send_text_in_chat(user, chat: Chat, text: str) -> TelegramMessage:
     )
 
     channel_layer = get_channel_layer()
-
     async_to_sync(channel_layer.group_send)(
         f'chat_{msg.interaction.chat.id}',
         {
@@ -49,5 +41,5 @@ def send_text_in_chat(user, chat: Chat, text: str) -> TelegramMessage:
         }
     )
 
-    send_viber_message.delay(msg.id)
+    send_telegram_message.delay(msg.id)
     return msg

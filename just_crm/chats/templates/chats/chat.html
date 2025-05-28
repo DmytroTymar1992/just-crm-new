@@ -51,10 +51,11 @@
     … existing messages …
     <!-- ===== НОВИЙ блок ===== -->
     <form id="sendForm" class="message-form">
-        {% csrf_token %}
-        <textarea id="msgInput" rows="2" placeholder="Напишіть повідомлення…"></textarea>
-        <button type="submit">Send</button>
-    </form>
+            {% csrf_token %}
+            <textarea id="msgInput" rows="2" placeholder="Напишіть повідомлення…"></textarea>
+            <button type="submit" name="send_viber">Send to Viber</button>
+            <button type="submit" name="send_telegram">Send to Telegram</button>
+        </form>
 {% endif %}
     </div>
 
@@ -194,37 +195,52 @@
 </style>
 <script>
   const chatId  = {{ selected_chat.id|default:"null" }};
-  const sendUrl = chatId ? "{% url 'chat-send-message' selected_chat.id %}" : null;
+  const viberSendUrl = chatId ? "{% url 'chat-send-message' selected_chat.id %}" : null;
+  const telegramSendUrl = chatId ? "{% url 'chat-send-message-telegram' selected_chat.id %}" : null;
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  if (!chatId) return; // немає вибраного чату
+  if (!chatId || (!viberSendUrl && !telegramSendUrl)) return; // немає вибраного чату або URL
 
   const form = document.getElementById('sendForm');
-  if (!form) return; // форми теж може не бути
+  if (!form) return; // форми немає
   const input = document.getElementById('msgInput');
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const text = input.value.trim();
     if (!text) return;
-    input.value = '';
 
-    // Надсилаємо повідомлення в бекенд
-    const resp = await fetch(sendUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-      },
-      body: JSON.stringify({ text })
-    });
+    // Визначаємо, на яку кнопку натиснули
+    const buttonName = e.submitter.name;
+    const sendUrl = buttonName === 'send_viber' ? viberSendUrl : telegramSendUrl;
 
-    if (!resp.ok) {
-      // Показуємо помилку, якщо відправка не вдалася
-      alert('Помилка відправки (HTTP ' + resp.status + ')');
+    if (!sendUrl) {
+      alert('Немає URL для відправки повідомлення');
+      return;
     }
-    // WebSocket сам додасть повідомлення через update_interaction
+
+    try {
+      const resp = await fetch(sendUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({ text })
+      });
+
+      if (!resp.ok) {
+        console.error('Failed to send message:', resp.status, await resp.text());
+        alert(`Помилка відправки до ${buttonName === 'send_viber' ? 'Viber' : 'Telegram'} (HTTP ${resp.status})`);
+      } else {
+        input.value = ''; // Очищаємо поле після успішної відправки
+      }
+      // WebSocket додасть повідомлення через update_interaction
+    } catch (error) {
+      console.error(`Error sending message to ${buttonName === 'send_viber' ? 'Viber' : 'Telegram'}:`, error);
+      alert(`Помилка відправки повідомлення до ${buttonName === 'send_viber' ? 'Viber' : 'Telegram'}: ${error.message}`);
+    }
   });
 });
 </script>
