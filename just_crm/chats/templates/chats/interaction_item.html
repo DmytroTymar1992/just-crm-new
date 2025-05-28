@@ -1,7 +1,16 @@
 <div class="message {% if interaction.sender == 'user' %}sent{% else %}received{% endif %}" data-interaction-id="{{ interaction.id }}">
     <div class="message-content">
         {% if interaction.interaction_type == 'telegram' %}
-            <p>{{ interaction.description }}</p>
+            {% if interaction.telegram_messages.first.delivery_status == 'failed' %}
+                <p>{{ interaction.telegram_messages.first.text }}</p>
+                <p title="{{ interaction.telegram_messages.first.error_code }}">❗️Помилка</p>
+            {% elif interaction.telegram_messages.first.delivery_status == 'delivered'%}
+                <p>{{ interaction.telegram_messages.first.text }}</p>
+                <p>Доставлено</p>
+            {% else %}
+                <p>{{ interaction.telegram_messages.first.text }}</p>
+                <p>Надіслано</p>
+            {% endif %}
         {% elif interaction.interaction_type == 'viber' %}
             {% if interaction.viber_messages.first.delivery_status == 'failed' %}
                 <p>{{ interaction.viber_messages.first.text }}</p>

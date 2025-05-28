@@ -36,7 +36,7 @@ def send_telegram_message(self, msg_id: int):
         },
     }
     headers = {
-        "Api-Key": msg.user.echat_api_key_telegram,
+        "API": msg.user.echat_api_key_telegram,
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
@@ -47,7 +47,7 @@ def send_telegram_message(self, msg_id: int):
     r.raise_for_status()
 
     data = r.json()
-    if data.get("status") != "Success":
+    if data.get("status") != "SUCCESS":
         raise Exception(f"E-chat error: {data}")
 
     msg.delivery_status = "sent"

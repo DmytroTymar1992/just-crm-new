@@ -145,7 +145,7 @@ def echat_telegram_webhook(request):
 def echat_telegram_status(request):
     data = request.data
     mid = str(data.get("message_id", ""))
-    status = data.get("status", "")  # sent, delivered, read, failed
+    status = str(data.get("delivery_status", ""))
     descr = data.get("description", "")
 
     try:
@@ -156,7 +156,13 @@ def echat_telegram_status(request):
         return Response({"error": "unknown message_id"}, status=404)
 
     # Оновлюємо статус
-    msg.delivery_status = status if status in ['pending', 'sent', 'delivered', 'read', 'failed'] else 'failed'
+    if status == "1":
+        msg.delivery_status = "delivered"
+    elif status == "4":
+        msg.delivery_status = "failed"
+    else:
+        logger.warning(f"Unknown delivery_status from E-Chat: {status}")
+        msg.delivery_status = "failed"
     msg.error_code = descr if descr else None
     msg.raw_event = data
     msg.save(update_fields=['delivery_status', 'error_code', 'raw_event'])
@@ -170,7 +176,7 @@ def echat_telegram_status(request):
         }
     )
 
-    if status == 'failed':
+    if status != "1":
         async_to_sync(channel_layer.group_send)(
             f'user_{msg.user.id}_notifications',
             {
@@ -182,9 +188,6 @@ def echat_telegram_status(request):
             }
         )
 
-        if msg.contact_phone and descr.lower().find('not found') != -1:
-            if msg.contact_phone.has_telegram:
-                msg.contact_phone.has_telegram = False
-                msg.contact_phone.save(update_fields=['has_telegram'])
+
 
     return Response({'ok': True})
