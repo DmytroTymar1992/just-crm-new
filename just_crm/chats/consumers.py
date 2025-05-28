@@ -90,7 +90,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
             interaction = Interaction.objects.filter(id=interaction_id).select_related('contact',
                                                                                        'contact_phone').prefetch_related(
-                'viber_messages', 'calls').first()
+                'viber_messages', 'calls', 'telegram_messages').first()
             if not interaction:
                 print(f"Interaction {interaction_id} not found")
                 return None

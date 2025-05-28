@@ -104,7 +104,7 @@ def echat_telegram_webhook(request):
     if contact_phone:
         contact_phone.has_telegram = True
         contact_phone.telegram_id = telegram_id
-        contact_phone.telegram_username = data.get('sender', {}).get('name')
+        contact_phone.telegram_username = data.get('sender', {}).get('username')
         contact_phone.save(update_fields=['telegram_id', 'telegram_username'])
 
 
@@ -133,7 +133,7 @@ def echat_telegram_webhook(request):
                 'chat_id': chat.id,
                 'contact_name': f"{contact.first_name} {contact.last_name or ''}",
                 'company_name': contact.company.name if contact.company else '',
-                'message': 'Viber повідомлення'
+                'message': 'Telegram повідомлення'
             }
         )
 
