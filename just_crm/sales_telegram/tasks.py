@@ -10,7 +10,7 @@ log = logging.getLogger("sales_telegram.api")
 SEND_URL = getattr(
     settings,
     "ECHAT_TELEGRAM_SEND_URL",
-    "https://telegrame.e-chat/api",
+    "https://telegram.e-chat.tech/api/SendMessage.php",
 )
 
 @shared_task(bind=True, max_retries=3, autoretry_for=(Exception,), retry_backoff=120)
@@ -27,12 +27,16 @@ def send_telegram_message(self, msg_id: int):
         msg.save(update_fields=["echat_message_id"])
 
     payload = {
-        "bot_id": msg.user.echat_instance_id,
+        "user": {"number": msg.user.echat_instance_id_telegram},
         "message": {"id": ext_id, "text": msg.text},
-        "contact": {"telegram_id": msg.contact_phone.telegram_id if msg.contact_phone else ''},
+        "receiver": {
+            "id": msg.contact_phone.telegram_id if msg.contact_phone else '',
+            "username": msg.contact_phone.telegram_username if msg.contact_phone else '',
+            "phone": msg.contact_phone.phone if msg.contact_phone else '',
+        },
     }
     headers = {
-        "Api-Key": msg.user.echat_api_key,
+        "Api-Key": msg.user.echat_api_key_telegram,
         "Content-Type": "application/json",
         "Accept": "application/json",
     }

@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import echat_telegram_webhook
-from sales_viber.api import ChatSendMessageView
+from .api import ChatSendMessageView
 
 urlpatterns = [
     path('webhook/', echat_telegram_webhook, name='echat_telegram_webhook'),
