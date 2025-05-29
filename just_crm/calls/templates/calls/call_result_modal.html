@@ -1,0 +1,25 @@
+<div class="modal fade" id="callResultModal" tabindex="-1" aria-labelledby="callResultModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="callResultModalLabel">Оновити результат дзвінка</h5>
+                <p id="callContactInfo" class="mb-0 text-muted"></p>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="callResultForm">
+                    <input type="hidden" id="callId">
+                    <div class="mb-3">
+                        <label for="callResult" class="form-label">Результат дзвінка</label>
+                        <textarea class="form-control" id="callResult" rows="4"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="callDescription" class="form-label">Опис</label>
+                        <textarea class="form-control" id="callDescription" rows="4"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Зберегти</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

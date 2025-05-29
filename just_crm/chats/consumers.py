@@ -68,7 +68,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
         else:
             print(f"Failed to send update_interaction: Interaction {event['interaction_id']} not found")
 
-
+    async def open_call_result_modal(self, event):
+        print(f"WebSocket sending open_call_result_modal for call {event['call_id']}")
+        await self.send(text_data=json.dumps({
+            'type': 'open_call_result_modal',
+            'call_id': event['call_id']
+        }))
+        print(f"WebSocket sent open_call_result_modal for call ID {event['call_id']}")
 
     @database_sync_to_async
     def get_chats(self):

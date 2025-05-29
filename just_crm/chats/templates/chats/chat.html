@@ -38,26 +38,22 @@
         </div>
         <div class="chat-messages" id="chat-messages">
             {% for interaction in interactions %}
-            {% include 'chats/interaction_item.html' with interaction=interaction %}
+                {% include 'chats/interaction_item.html' with interaction=interaction %}
             {% empty %}
-            <p>Немає повідомлень</p>
+                <p>Немає повідомлень</p>
             {% endfor %}
         </div>
-
-        {% else %}
-        <p>Виберіть чат, щоб розпочати спілкування</p>
-        {% endif %}
-        {% if selected_chat %}
-    … existing messages …
-    <!-- ===== НОВИЙ блок ===== -->
-    <form id="sendForm" class="message-form">
+        <form id="sendForm" class="message-form">
             {% csrf_token %}
             <textarea id="msgInput" rows="2" placeholder="Напишіть повідомлення…"></textarea>
             <button type="submit" name="send_viber">Send to Viber</button>
             <button type="submit" name="send_telegram">Send to Telegram</button>
         </form>
-{% endif %}
+        {% else %}
+        <p>Виберіть чат, щоб розпочати спілкування</p>
+        {% endif %}
     </div>
+
 
     <!-- Права частина: порожній блок -->
     <div class="chat-info-sidebar">
@@ -66,6 +62,7 @@
     </div>
 
 <div id="modalContainer"></div>
+{% include 'calls/call_result_modal.html' %}
 </div>
 
 <style>
@@ -193,6 +190,7 @@
     padding: 10px;
 }
 </style>
+
 <script>
   const chatId  = {{ selected_chat.id|default:"null" }};
   const viberSendUrl = chatId ? "{% url 'chat-send-message' selected_chat.id %}" : null;
@@ -252,13 +250,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatId = {{ selected_chat.id|default:"null" }};
     const modalContainer = document.getElementById('modalContainer');
 
-    // Функція для закриття модального вікна
     function closeModal(modal) {
         modal.style.display = 'none';
         modalContainer.innerHTML = '';
     }
 
-    // Функція для показу помилок у модальному вікні
     function showError(modal, error) {
         let errorDiv = modal.querySelector('.error-messages');
         if (!errorDiv) {
@@ -283,7 +279,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Функція для обробки відправки форми
     function handleFormSubmit(e) {
         e.preventDefault();
         const form = this.closest('.ajax-form');
@@ -354,13 +349,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 const messages = document.getElementById('chat-messages');
                 const existingMessage = document.querySelector(`.message[data-interaction-id="${data.interaction_id}"]`);
                 if (existingMessage) {
-                    // Оновлюємо існуючу взаємодію (наприклад, статус доставки)
                     existingMessage.outerHTML = data.html;
                 } else {
-                    // Додаємо нову взаємодію
                     messages.insertAdjacentHTML('beforeend', data.html);
                     messages.scrollTop = messages.scrollHeight;
                 }
+            } else if (data.type === 'open_call_result_modal' && data.call_id) {
+                console.log('Opening call result modal for call ID:', data.call_id);
+                openCallResultModal(data.call_id);
             }
         };
 
@@ -375,7 +371,6 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
-    // Логіка модального вікна
     document.getElementById('createTaskBtn').addEventListener('click', function() {
         fetch('/tasks/create/{{ selected_chat.id }}/')
             .then(response => {
@@ -393,7 +388,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 modal.style.display = 'flex';
 
-                // Закриття модального вікна
                 const closeButton = modal.querySelector('.close');
                 if (closeButton) {
                     closeButton.addEventListener('click', function() {
@@ -401,14 +395,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
 
-                // Закриття при кліку поза модальним вікном
                 modal.addEventListener('click', function(e) {
                     if (e.target === modal) {
                         closeModal(modal);
                     }
                 });
 
-                // Обробка відправки форми
                 const submitButton = modal.querySelector('.ajax-submit');
                 if (submitButton) {
                     submitButton.addEventListener('click', handleFormSubmit);
@@ -421,6 +413,124 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Помилка завантаження форми створення задачі');
             });
     });
+});
+</script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('callResultForm');
+
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const callId = document.getElementById('callId').value;
+        const result = document.getElementById('callResult').value;
+        const description = document.getElementById('callDescription').value;
+
+        fetch('/calls/update-result/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: new URLSearchParams({
+                'call_id': callId,
+                'result': result,
+                'description': description
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                $('#callResultModal').modal('hide');
+                form.reset();
+                // Optional: Refresh table or update UI
+                alert('Результат дзвінка успішно оновлено');
+            } else {
+                alert('Помилка: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Помилка: ' + error);
+        });
+    });
+
+    // Function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+
+// Function to open modal with call ID
+function openCallResultModal(callId) {
+    document.getElementById('callId').value = callId;
+    $('#callResultModal').modal('show');
+}
+    </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const chatMessages = document.getElementById('chat-messages');
+    const chatId = {{ selected_chat.id|default:"null" }};
+
+    if (chatMessages && chatId) {
+        // Прокрутка донизу при завантаженні
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        // Обробка прокрутки до верху для завантаження старіших взаємодій
+        let isLoading = false;
+        let page = {{ page_obj.number|default:1 }};
+        let hasPrevious = {{ page_obj.has_previous|yesno:"true,false" }};
+
+        chatMessages.addEventListener('scroll', () => {
+            if (isLoading || !hasPrevious) return;
+
+            // Перевірка, чи прокручено майже до верху
+            if (chatMessages.scrollTop < 50) {
+                isLoading = true;
+                const previousScrollHeight = chatMessages.scrollHeight; // Зберігаємо висоту до запиту
+                page -= 1; // Завантажуємо попередню сторінку
+
+                fetch(`/chats/${chatId}/?page=${page}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.html) {
+                        // Додаємо старіші повідомлення нагорі
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = data.html;
+                        while (tempDiv.firstChild) {
+                            chatMessages.insertBefore(tempDiv.firstChild, chatMessages.firstChild);
+                        }
+                        // Оновлюємо позицію прокрутки, щоб зберегти видиме повідомлення
+                        const newScrollHeight = chatMessages.scrollHeight;
+                        chatMessages.scrollTop = newScrollHeight - previousScrollHeight + chatMessages.scrollTop;
+                        hasPrevious = data.has_previous; // Оновлюємо, чи є ще сторінки
+                    }
+                    isLoading = false;
+                })
+                .catch(error => {
+                    console.error('Помилка завантаження взаємодій:', error);
+                    isLoading = false;
+                });
+            }
+        });
+    }
+
+    // ... Існуючий код для відправки повідомлень і WebSocket ...
 });
 </script>
 {% endblock %}

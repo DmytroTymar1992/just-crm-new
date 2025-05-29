@@ -29,7 +29,8 @@ def send_text_in_chat(user, chat: Chat, text: str) -> ViberMessage:
     inter = Interaction.objects.create(
         user=user, chat=chat, contact=chat.contact,
         contact_phone=phone, date=timezone.now(),
-        interaction_type='viber', sender='user', is_read=True
+        interaction_type='viber', sender='user', is_read=True, user_last_name=user.last_name,
+        user_first_name=user.first_name
     )
 
     msg = ViberMessage.objects.create(
@@ -40,7 +41,10 @@ def send_text_in_chat(user, chat: Chat, text: str) -> ViberMessage:
     )
 
     channel_layer = get_channel_layer()
-
+    async_to_sync(channel_layer.group_send)(
+        f'user_{msg.user.id}_chats',
+        {'type': 'update_chats'}
+    )
     async_to_sync(channel_layer.group_send)(
         f'chat_{msg.interaction.chat.id}',
         {

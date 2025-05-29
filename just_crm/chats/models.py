@@ -35,6 +35,8 @@ class Interaction(models.Model):
     sender = models.CharField(max_length=20, choices=SenderType.choices, verbose_name='Відправник')
     description = models.TextField(blank=True, verbose_name='Опис')
     is_read = models.BooleanField(default=False, verbose_name='Прочитано')
+    user_first_name = models.CharField(max_length=50, null=True, blank=True)
+    user_last_name = models.CharField(max_length=50, null=True, blank=True)
 
     def __str__(self):
         return f"{self.interaction_type} interaction with {self.contact.name} by {self.sender} on {self.date}"
