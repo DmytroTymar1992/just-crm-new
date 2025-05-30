@@ -43,7 +43,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f'Successfully fetched page. Status code: {response.status_code}'))
 
             soup = BeautifulSoup(response.text, 'html.parser')
-            vacancy_cards = soup.find_all('div', class_='card card-hover card-visited wordwrap job-link js-job-link-blank js-hot-block')
+            vacancy_cards = soup.find_all('div', class_='job-link')
 
             self.stdout.write(self.style.NOTICE(f'Found {len(vacancy_cards)} vacancy cards.'))
 
@@ -61,6 +61,7 @@ class Command(BaseCommand):
                     continue
                 title = title_tag.find('a').text.strip()
                 href = title_tag.find('a')['href']
+                link = f"https://www.work.ua{href}" if href.startswith('/') else href
                 work_id_match = re.search(r'/jobs/(\d+)/', href)
                 if not work_id_match:
                     self.stdout.write(self.style.WARNING(f'Skipping card: No work_id found in href {href}.'))
@@ -88,19 +89,22 @@ class Command(BaseCommand):
                 # Extract city
                 city = None
                 if company_tag_block:
-                    city_spans = company_tag_block.find_all('span', class_='')
-                    for span in city_spans:
-                        city_text = span.text.strip()
-                        if city_text and 'км' not in city_text:  # Exclude distance info
-                            city = city_text
+                    for span in company_tag_block.find_all('span'):
+                        classes = span.get('class', [])
+                        if classes:
+                            # skip spans that have any class specified
+                            continue
+                        city_text = span.get_text(strip=True)
+                        if city_text and 'км' not in city_text:
+                            city = city_text.rstrip(',').strip()
                             break
-                    if city and ',' in city:
-                        city = city.split(',')[0].strip()
 
-                self.stdout.write(self.style.NOTICE(
-                    f'Parsed: title={title}, work_id={work_id}, company_id={company_id}, '
-                    f'company_name={company_name}, status={status}, city={city}'
-                ))
+                self.stdout.write(
+                    self.style.NOTICE(
+                        f'Parsed: title={title}, work_id={work_id}, company_id={company_id}, '
+                        f'company_name={company_name}, status={status}, city={city}, link={link}'
+                    )
+                )
 
                 # Step 3: Handle company
                 company = None
@@ -130,6 +134,7 @@ class Command(BaseCommand):
                         'title': title,
                         'company': company,
                         'city': city,
+                        'link': link,
                         'is_active': True,
                         'is_new': True,
                         'status': status
@@ -139,6 +144,7 @@ class Command(BaseCommand):
                     vacancy.title = title
                     vacancy.company = company
                     vacancy.city = city
+                    vacancy.link = link
                     vacancy.is_active = True
                     vacancy.is_new = False
                     vacancy.status = status
