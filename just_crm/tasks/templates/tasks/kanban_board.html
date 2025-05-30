@@ -30,8 +30,8 @@
     .kanban-task { background-color: white; border: 1px solid #ddd; border-radius: 5px; padding: 10px; margin-bottom: 10px; }
     .kanban-task p { margin: 5px 0; }
     .kanban-task a { margin-right: 10px; color: #007bff; }
-    .modal { position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; }
-    .modal-content { background-color: white; padding: 20px; border-radius: 5px; width: 400px; max-width: 90%; position: relative; }
+    .tasks-modal { position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; }
+    .tasks-modal-content { background-color: white; padding: 20px; border-radius: 5px; width: 400px; max-width: 90%; position: relative; }
     .close { position: absolute; right: 10px; top: 10px; font-size: 20px; cursor: pointer; }
     .error-messages { color: red; margin-bottom: 10px; }
     .error-messages ul { list-style: none; padding: 0; }
@@ -78,7 +78,7 @@ document.addEventListener("DOMContentLoaded", function() {
             })
             .then(html => {
                 modalContainer.innerHTML = html;
-                const modal = modalContainer.querySelector('.modal');
+                const modal = modalContainer.querySelector('.tasks-modal');
                 modal.style.display = 'flex';
 
                 const closeButton = modal.querySelector('.close');
@@ -112,7 +112,7 @@ document.addEventListener("DOMContentLoaded", function() {
         if (!errorDiv) {
             errorDiv = document.createElement('div');
             errorDiv.className = 'error-messages';
-            modal.querySelector('.modal-content').insertBefore(errorDiv, modal.querySelector('form'));
+            modal.querySelector('.tasks-modal-content').insertBefore(errorDiv, modal.querySelector('form'));
         }
         if (error.errors) {
             const errors = JSON.parse(error.errors);
@@ -134,7 +134,7 @@ document.addEventListener("DOMContentLoaded", function() {
     function handleFormSubmit(e) {
         e.preventDefault();
         const form = this.closest('.ajax-form');
-        const modal = form.closest('.modal');
+        const modal = form.closest('.tasks-modal');
         fetch(form.action, {
             method: 'POST',
             body: new FormData(form),
@@ -161,7 +161,7 @@ document.addEventListener("DOMContentLoaded", function() {
     function handleCompleteTask(e) {
         e.preventDefault();
         const taskId = this.getAttribute('data-task-id');
-        const modal = this.closest('.modal');
+        const modal = this.closest('.tasks-modal');
         fetch(`/tasks/complete/${taskId}/`, {
             method: 'POST',
             headers: {
@@ -191,7 +191,7 @@ document.addEventListener("DOMContentLoaded", function() {
     function handleTransferTask(e) {
         e.preventDefault();
         const taskId = this.getAttribute('data-task-id');
-        closeModal(this.closest('.modal'));
+        closeModal(this.closest('.tasks-modal'));
         openModal(`/tasks/transfer/${taskId}/`);
     }
 
@@ -203,7 +203,7 @@ document.addEventListener("DOMContentLoaded", function() {
             })
             .then(html => {
                 modalContainer.innerHTML = html;
-                const modal = modalContainer.querySelector('.modal');
+                const modal = modalContainer.querySelector('.tasks-modal');
                 modal.style.display = 'flex';
                 setupConfirmModal(modal);
             })

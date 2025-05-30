@@ -190,12 +190,13 @@
     padding: 10px;
 }
 </style>
-
+{% if selected_chat.id %}
 <script>
   const chatId  = {{ selected_chat.id|default:"null" }};
   const viberSendUrl = chatId ? "{% url 'chat-send-message' selected_chat.id %}" : null;
   const telegramSendUrl = chatId ? "{% url 'chat-send-message-telegram' selected_chat.id %}" : null;
 </script>
+{% endif %}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   if (!chatId || (!viberSendUrl && !telegramSendUrl)) return; // немає вибраного чату або URL
@@ -260,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!errorDiv) {
             errorDiv = document.createElement('div');
             errorDiv.className = 'error-messages';
-            modal.querySelector('.modal-content').insertBefore(errorDiv, modal.querySelector('form'));
+            modal.querySelector('.tasks-modal-content').insertBefore(errorDiv, modal.querySelector('form'));
         }
         if (error.errors) {
             const errors = JSON.parse(error.errors);
@@ -282,7 +283,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleFormSubmit(e) {
         e.preventDefault();
         const form = this.closest('.ajax-form');
-        const modal = form.closest('.modal');
+        const modal = form.closest('.tasks-modal');
         fetch(form.action, {
             method: 'POST',
             body: new FormData(form),
@@ -381,7 +382,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(html => {
                 modalContainer.innerHTML = html;
-                const modal = modalContainer.querySelector('.modal');
+                const modal = modalContainer.querySelector('.tasks-modal');
                 if (!modal) {
                     console.error('Modal element not found in fetched HTML');
                     return;
@@ -512,8 +513,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Додаємо старіші повідомлення нагорі
                         const tempDiv = document.createElement('div');
                         tempDiv.innerHTML = data.html;
-                        while (tempDiv.firstChild) {
-                            chatMessages.insertBefore(tempDiv.firstChild, chatMessages.firstChild);
+                        const nodes = Array.from(tempDiv.children);
+                        for (let i = nodes.length - 1; i >= 0; i--) {
+                            chatMessages.insertBefore(nodes[i], chatMessages.firstChild);
                         }
                         // Оновлюємо позицію прокрутки, щоб зберегти видиме повідомлення
                         const newScrollHeight = chatMessages.scrollHeight;

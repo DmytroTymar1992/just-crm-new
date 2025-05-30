@@ -47,6 +47,11 @@ class Company(models.Model):
         allow_unicode=True  # Дозволяє кирилицю
     )
 
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name=_('Чи в роботі')
+    )
+
     class Meta:
         verbose_name = _('Компанія')
         verbose_name_plural = _('Компанії')

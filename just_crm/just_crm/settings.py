@@ -48,6 +48,8 @@ INSTALLED_APPS = [
     'tasks',
     'sales_viber.apps.SalesViberConfig',
     'sales_telegram.apps.SalesTelegramConfig',
+    'vacancies',
+    'parser',
 
     'channels',
     'rest_framework',
