@@ -203,88 +203,82 @@
 </script>
 {% endif %}
 <script>
-$(document).ready(function() {
-    function pad(num) {
-        return num.toString().padStart(2, '0');
+function pad(num) {
+    return num.toString().padStart(2, '0');
+}
+
+function generateAllTimes() {
+    var times = [];
+    var current = new Date('1970-01-01T09:00:00');
+    var end = new Date('1970-01-01T18:00:00');
+    while (current <= end) {
+        times.push(pad(current.getHours()) + ':' + pad(current.getMinutes()));
+        current.setMinutes(current.getMinutes() + 5);
     }
+    return times;
+}
 
-    function generateAllTimes() {
-        var times = [];
-        var current = new Date('1970-01-01T09:00:00');
-        var end = new Date('1970-01-01T18:00:00');
-        while (current <= end) {
-            times.push(pad(current.getHours()) + ':' + pad(current.getMinutes()));
-            current.setMinutes(current.getMinutes() + 5);
-        }
-        return times;
-    }
-
-    function loadSlots(date) {
-        $.get('{% url "get_available_slots" %}', {date: date}, function(data) {
-            var timeSelect = $('#id_task_time');
-            timeSelect.empty();
-            var available = data.slots || [];
-            var allTimes = generateAllTimes();
-            $.each(allTimes, function(_, timeStr) {
-                var option = $('<option>').val(timeStr).text(timeStr);
-                if (!available.includes(timeStr)) {
-                    option.text(timeStr + ' (зайнято)').prop('disabled', true).addClass('busy-slot');
-                }
-                timeSelect.append(option);
-            });
-        }).fail(function() {
-            alert('Помилка при отриманні слотів');
-        });
-    }
-    $('#id_task_date').change(function() {
-        var selectedDate = $(this).val();
-        if (selectedDate) {
-            loadSlots(selectedDate);
-        }
-    });
-    // Завантаження слотів для поточної дати при відкритті форми
-    var initialDate = $('#id_task_date').val();
-    if (initialDate) {
-        loadSlots(initialDate);
-    }
-
-    // Обробка AJAX відправки форми
-    $('.ajax-submit').click(function() {
-        var form = $(this).closest('form');
-        var formData = form.serialize();
-        var actionUrl = form.attr('action');
-
-        // Отримуємо CSRF-токен
-        var csrftoken = $('input[name=csrfmiddlewaretoken]').val();
-
-        $.ajax({
-            url: actionUrl,
-            type: 'POST',
-            data: formData,
-            headers: {
-                'X-CSRFToken': csrftoken,
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    alert('Задачу створено!');
-                    $('#taskModal').hide();
-                    // Оновлення Kanban-дошки або інших елементів, якщо потрібно
-                } else {
-                    $('.error-messages').html('<ul>' + response.errors + '</ul>');
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Помилка відправки форми:', xhr.responseText);
-                try {
-                    var response = JSON.parse(xhr.responseText);
-                    $('.error-messages').html('<ul><li>' + response.error + '</li></ul>');
-                } catch (e) {
-                    $('.error-messages').html('<ul><li>Невідома помилка сервера</li></ul>');
-                }
+function loadSlots(date) {
+    $.get('{% url "get_available_slots" %}', {date: date}, function(data) {
+        var timeSelect = $('#id_task_time');
+        timeSelect.empty();
+        var available = data.slots || [];
+        var allTimes = generateAllTimes();
+        $.each(allTimes, function(_, timeStr) {
+            var option = $('<option>').val(timeStr).text(timeStr);
+            if (!available.includes(timeStr)) {
+                option.text(timeStr + ' (зайнято)').prop('disabled', true).addClass('busy-slot');
             }
+            timeSelect.append(option);
         });
+
+    }).fail(function() {
+        alert('Помилка при отриманні слотів');
+    });
+
+}
+
+// Обробка зміни дати через делегування події
+$(document).on('change', '#id_task_date', function() {
+    var selectedDate = $(this).val();
+    if (selectedDate) {
+        loadSlots(selectedDate);
+    }
+});
+
+// Делегування для відправки форми
+$(document).on('click', '.ajax-submit', function() {
+    var form = $(this).closest('form');
+    var formData = form.serialize();
+    var actionUrl = form.attr('action');
+    var csrftoken = $('input[name=csrfmiddlewaretoken]').val();
+
+    $.ajax({
+        url: actionUrl,
+        type: 'POST',
+        data: formData,
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                alert('Задачу створено!');
+                $('#taskModal').hide();
+            } else {
+                $('.error-messages').html('<ul>' + response.errors + '</ul>');
+            }
+         },
+        error: function(xhr) {
+            console.error('Помилка відправки форми:', xhr.responseText);
+            try {
+                var response = JSON.parse(xhr.responseText);
+                $('.error-messages').html('<ul><li>' + response.error + '</li></ul>');
+            } catch (e) {
+                $('.error-messages').html('<ul><li>Невідома помилка сервера</li></ul>');
+            }
+        }
     });
 });
 </script>
@@ -498,6 +492,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     submitButton.addEventListener('click', handleFormSubmit);
                 } else {
                     console.warn('Submit button (.ajax-submit) not found in modal');
+                }
+                const dateInput = modal.querySelector('#id_task_date');
+                if (dateInput) {
+                    loadSlots(dateInput.value);
                 }
             })
             .catch(error => {
