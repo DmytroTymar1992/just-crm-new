@@ -189,6 +189,11 @@
     width: 25%;
     padding: 10px;
 }
+
+/* Стиль для зайнятих слотів часу */
+.busy-slot {
+    color: red;
+}
 </style>
 {% if selected_chat.id %}
 <script>
@@ -199,25 +204,49 @@
 {% endif %}
 <script>
 $(document).ready(function() {
-    // Обробка вибору дати для оновлення слотів
+    function pad(num) {
+        return num.toString().padStart(2, '0');
+    }
+
+    function generateAllTimes() {
+        var times = [];
+        var current = new Date('1970-01-01T09:00:00');
+        var end = new Date('1970-01-01T18:00:00');
+        while (current <= end) {
+            times.push(pad(current.getHours()) + ':' + pad(current.getMinutes()));
+            current.setMinutes(current.getMinutes() + 5);
+        }
+        return times;
+    }
+
+    function loadSlots(date) {
+        $.get('{% url "get_available_slots" %}', {date: date}, function(data) {
+            var timeSelect = $('#id_task_time');
+            timeSelect.empty();
+            var available = data.slots || [];
+            var allTimes = generateAllTimes();
+            $.each(allTimes, function(_, timeStr) {
+                var option = $('<option>').val(timeStr).text(timeStr);
+                if (!available.includes(timeStr)) {
+                    option.text(timeStr + ' (зайнято)').prop('disabled', true).addClass('busy-slot');
+                }
+                timeSelect.append(option);
+            });
+        }).fail(function() {
+            alert('Помилка при отриманні слотів');
+        });
+    }
     $('#id_task_date').change(function() {
         var selectedDate = $(this).val();
         if (selectedDate) {
-            $.get('{% url "get_available_slots" %}', {date: selectedDate}, function(data) {
-                var timeSelect = $('#id_task_time');
-                timeSelect.empty();
-                if (data.slots && data.slots.length > 0) {
-                    $.each(data.slots, function(index, slot) {
-                        timeSelect.append($('<option>').val(slot).text(slot));
-                    });
-                } else {
-                    timeSelect.append($('<option>').val('').text('Немає вільних слотів'));
-                }
-            }).fail(function() {
-                alert('Помилка при отриманні слотів');
-            });
+            loadSlots(selectedDate);
         }
     });
+    // Завантаження слотів для поточної дати при відкритті форми
+    var initialDate = $('#id_task_date').val();
+    if (initialDate) {
+        loadSlots(initialDate);
+    }
 
     // Обробка AJAX відправки форми
     $('.ajax-submit').click(function() {

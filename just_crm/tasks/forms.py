@@ -49,9 +49,18 @@ class TaskForm(forms.ModelForm):
             self.fields['task_date'].widget.attrs['min'] = timezone.now().strftime('%Y-%m-%d')
             # Ініціалізація слотів для поточної дати
             if user:
-                today = timezone.now().date()
-                slots = Task.get_available_slots(today, user)
-                self.fields['task_time'].choices = [(slot.strftime('%H:%M'), slot.strftime('%H:%M')) for slot in slots]
+                date_str = (self.data.get('task_date') or timezone.now().date())
+                if isinstance(date_str, str):
+                    try:
+                        selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                    except ValueError:
+                        selected_date = timezone.now().date()
+                else:
+                    selected_date = date_str
+                slots = Task.get_available_slots(selected_date, user)
+                self.fields['task_time'].choices = [
+                    (slot.strftime('%H:%M'), slot.strftime('%H:%M')) for slot in slots
+                ]
 
     def clean(self):
         cleaned_data = super().clean()
@@ -62,7 +71,8 @@ class TaskForm(forms.ModelForm):
             try:
                 # Об'єднуємо дату і час
                 time_obj = datetime.strptime(task_time, '%H:%M').time()
-                combined_datetime = datetime.combine(task_date, time_obj)
+                combined_naive = datetime.combine(task_date, time_obj)
+                combined_datetime = timezone.make_aware(combined_naive)
                 if combined_datetime < timezone.now():
                     self.add_error('task_date', 'Дата і час задачі не можуть бути в минулому.')
                 # Перевірка, чи слот вільний

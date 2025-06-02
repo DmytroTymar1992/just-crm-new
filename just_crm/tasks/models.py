@@ -55,8 +55,10 @@ class Task(models.Model):
     @staticmethod
     def get_available_slots(date, user):
         """Повертає список вільних 5-хвилинних слотів для користувача на задану дату."""
-        start_time = datetime.combine(date, time(9, 0))
-        end_time = datetime.combine(date, time(18, 0))
+        start_naive = datetime.combine(date, time(9, 0))
+        end_naive = datetime.combine(date, time(18, 0))
+        start_time = timezone.make_aware(start_naive)
+        end_time = timezone.make_aware(end_naive)
         interval = timedelta(minutes=5)
         slots = []
 
