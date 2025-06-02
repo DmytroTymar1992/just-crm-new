@@ -5,7 +5,7 @@ from contacts.models import Contact, ContactPhone
 from contacts.utils import normalize_phone_number
 import requests
 from bs4 import BeautifulSoup
-import re
+
 import time
 
 class Command(BaseCommand):
@@ -59,7 +59,11 @@ class Command(BaseCommand):
                 # Search for <li> containing <span class="glyphicon glyphicon-phone">
                 contact_li = None
                 for li in contact_block.find_all('li', class_='text-indent no-style mt-sm mb-0'):
-                    if li.find('span', class_='glyphicon glyphicon-phone'):
+                    span_with_phone_icon = li.find(
+                        'span', class_=lambda c: c and 'glyphicon-phone' in c
+                    )
+                    if li.find('span', id='contact-phone') or li.find('span', attrs={
+                        'title': 'Контакти'}) or span_with_phone_icon:
                         contact_li = li
                         break
 
@@ -133,4 +137,4 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.ERROR(traceback.format_exc()))
 
             # Delay to avoid overwhelming the server
-            time.sleep(1)
+            time.sleep(0.1)

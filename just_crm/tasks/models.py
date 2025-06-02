@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from contacts.models import Contact
 from django.utils import timezone
+from datetime import time, datetime, timedelta
 
 
 class Task(models.Model):
@@ -50,6 +51,26 @@ class Task(models.Model):
         elif not self.is_completed:
             self.completed_at = None
         super().save(*args, **kwargs)
+
+    @staticmethod
+    def get_available_slots(date, user):
+        """Повертає список вільних 5-хвилинних слотів для користувача на задану дату."""
+        start_time = datetime.combine(date, time(9, 0))
+        end_time = datetime.combine(date, time(18, 0))
+        interval = timedelta(minutes=5)
+        slots = []
+
+        current_time = start_time
+        while current_time <= end_time:
+            if not Task.objects.filter(
+                user=user,
+                task_date=current_time,
+                is_completed=False
+            ).exists():
+                slots.append(current_time.time())
+            current_time += interval
+
+        return slots
 
 
 class TaskTransfer(models.Model):

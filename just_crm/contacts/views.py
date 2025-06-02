@@ -4,12 +4,38 @@ from contacts.models import Contact
 from .forms import ContactForm, ContactPhoneFormSet, ContactEmailFormSet
 from companies.models import Company
 from chats.models import Interaction
+from main.pagination_utils import get_paginated_objects
+from django.db.models import Q
 
 
 @login_required
 def contact_list(request):
+    # Отримуємо пошуковий запит
+    search_query = request.GET.get('q', '').strip()
+
+    # Базовий queryset
     contacts = Contact.objects.all()
-    return render(request, 'contacts/contact_list.html', {'contacts': contacts})
+
+    # Фільтруємо за пошуковим запитом
+    if search_query:
+        contacts = contacts.filter(
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(company__name__icontains=search_query) |
+            Q(phones__phone__icontains=search_query) |
+            Q(phones__telegram_username__icontains=search_query) |
+            Q(phones__telegram_id__icontains=search_query) |
+            Q(emails__email__icontains=search_query)
+        ).distinct()
+
+    # Пагінація
+    paginated_contacts = get_paginated_objects(request, contacts, 24)
+
+    # Якщо це AJAX-запит, повертаємо лише таблицю та пагінацію
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return render(request, 'contacts/contact_list_table.html', {'contacts': paginated_contacts})
+
+    return render(request, 'contacts/contact_list.html', {'contacts': paginated_contacts})
 
 
 @login_required

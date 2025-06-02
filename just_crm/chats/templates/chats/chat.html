@@ -198,6 +198,68 @@
 </script>
 {% endif %}
 <script>
+$(document).ready(function() {
+    // Обробка вибору дати для оновлення слотів
+    $('#id_task_date').change(function() {
+        var selectedDate = $(this).val();
+        if (selectedDate) {
+            $.get('{% url "get_available_slots" %}', {date: selectedDate}, function(data) {
+                var timeSelect = $('#id_task_time');
+                timeSelect.empty();
+                if (data.slots && data.slots.length > 0) {
+                    $.each(data.slots, function(index, slot) {
+                        timeSelect.append($('<option>').val(slot).text(slot));
+                    });
+                } else {
+                    timeSelect.append($('<option>').val('').text('Немає вільних слотів'));
+                }
+            }).fail(function() {
+                alert('Помилка при отриманні слотів');
+            });
+        }
+    });
+
+    // Обробка AJAX відправки форми
+    $('.ajax-submit').click(function() {
+        var form = $(this).closest('form');
+        var formData = form.serialize();
+        var actionUrl = form.attr('action');
+
+        // Отримуємо CSRF-токен
+        var csrftoken = $('input[name=csrfmiddlewaretoken]').val();
+
+        $.ajax({
+            url: actionUrl,
+            type: 'POST',
+            data: formData,
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    alert('Задачу створено!');
+                    $('#taskModal').hide();
+                    // Оновлення Kanban-дошки або інших елементів, якщо потрібно
+                } else {
+                    $('.error-messages').html('<ul>' + response.errors + '</ul>');
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Помилка відправки форми:', xhr.responseText);
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    $('.error-messages').html('<ul><li>' + response.error + '</li></ul>');
+                } catch (e) {
+                    $('.error-messages').html('<ul><li>Невідома помилка сервера</li></ul>');
+                }
+            }
+        });
+    });
+});
+</script>
+<script>
 document.addEventListener('DOMContentLoaded', () => {
   if (!chatId || (!viberSendUrl && !telegramSendUrl)) return; // немає вибраного чату або URL
 

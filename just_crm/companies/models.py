@@ -9,25 +9,28 @@ class Company(models.Model):
     name = models.CharField(
         max_length=255,
         verbose_name=_('Назва'),
-        unique=True
+        unique=False
     )
     work_id = models.CharField(
         max_length=50,
         verbose_name=_('Work ID'),
         blank=True,
-        null=True
+        null=True,
+        unique=True
     )
     rabota_id = models.CharField(
         max_length=50,
         verbose_name=_('Rabota ID'),
         blank=True,
-        null=True
+        null=True,
+        unique=True
     )
     just_id = models.CharField(
         max_length=50,
         verbose_name=_('Just ID'),
         blank=True,
-        null=True
+        null=True,
+        unique=True
     )
     responsible = models.ForeignKey(
         CustomUser,
@@ -42,7 +45,7 @@ class Company(models.Model):
     )
     slug = models.SlugField(
         max_length=255,
-        unique=True,
+        unique=False,
         verbose_name=_('Слаг'),
         allow_unicode=True  # Дозволяє кирилицю
     )

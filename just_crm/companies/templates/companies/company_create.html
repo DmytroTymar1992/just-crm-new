@@ -4,10 +4,149 @@
 
 {% block content %}
     <h1>Створити нову компанію</h1>
-    <form method="post">
+    <form method="post" id="companyForm">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit" class="btn btn-success">Зберегти</button>
+        <div id="name_error" class="error-message" style="color: red; display: none;"></div>
+        <div id="work_id_error" class="error-message" style="color: red; display: none;"></div>
+        <div id="rabota_id_error" class="error-message" style="color: red; display: none;"></div>
+        <div id="just_id_error" class="error-message" style="color: red; display: none;"></div>
+        <button type="submit" class="btn btn-success" id="submitButton">Зберегти</button>
         <a href="{% url 'company_list' %}" class="btn btn-secondary">Скасувати</a>
     </form>
+
+    <style>
+        .error-message {
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+        .form-field {
+            margin-bottom: 15px;
+        }
+        .form-field label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-field input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        .company-link {
+            color: #007bff;
+            text-decoration: underline;
+        }
+        .company-link:hover {
+            color: #0056b3;
+        }
+    </style>
+
+    <!-- Підключення jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // Функція debounce для обмеження частоти запитів
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        $(document).ready(function () {
+            const $form = $('#companyForm');
+            const $submitButton = $('#submitButton');
+            const $nameInput = $('#id_name');
+            const $workIdInput = $('#id_work_id');
+            const $rabotaIdInput = $('#id_rabota_id');
+            const $justIdInput = $('#id_just_id');
+            const $nameError = $('#name_error');
+            const $workIdError = $('#work_id_error');
+            const $rabotaIdError = $('#rabota_id_error');
+            const $justIdError = $('#just_id_error');
+
+            // Функція перевірки поля через AJAX
+            function checkField(field, value, $errorElement, errorMessage) {
+                if (!value.trim()) {
+                    $errorElement.hide();
+                    return Promise.resolve(false);
+                }
+
+                return $.ajax({
+                    url: "{% url 'check_company_exists' %}",
+                    data: { [field]: value },
+                    method: 'GET',
+                    dataType: 'json'
+                }).then(data => {
+                    const result = data[field];
+                    const exists = result.exists;
+                    if (exists) {
+                        const companyName = result.company_name;
+                        const companyId = result.company_id;
+                        const companyUrl = "{% url 'company_detail' 0 %}".replace('0', companyId);
+
+                        if (field === 'name') {
+                            // Для назви ховаємо посилання в слові "існує"
+                            $errorElement.html(`Компанія з такою назвою вже <a href="${companyUrl}" class="company-link" target="_blank">існує</a>`).show();
+                        } else {
+                            // Для ID показуємо назву компанії з посиланням
+                            $errorElement.html(`Цей ${field.replace('_id', '').replace('work', 'Work').replace('rabota', 'Rabota').replace('just', 'Just')} ID уже використовується компанією <a href="${companyUrl}" class="company-link" target="_blank">${companyName}</a>`).show();
+                        }
+                    } else {
+                        $errorElement.hide();
+                    }
+                    return exists;
+                }).fail(() => {
+                    $errorElement.text('Помилка перевірки. Спробуйте ще раз.').show();
+                    return false;
+                });
+            }
+
+            // Функція оновлення стану кнопки
+            function updateSubmitButton() {
+                const inputs = [
+                    { input: $workIdInput, error: $workIdError, field: 'work_id' },
+                    { input: $rabotaIdInput, error: $rabotaIdError, field: 'rabota_id' },
+                    { input: $justIdInput, error: $justIdError, field: 'just_id' }
+                ];
+
+                Promise.all(inputs.map(({ input, field, error }) => {
+                    const value = input.val().trim();
+                    if (value) {
+                        return checkField(field, value, error, '');
+                    }
+                    return false;
+                })).then(results => {
+                    $submitButton.prop('disabled', results.some(exists => exists));
+                });
+            }
+
+            // Debounced функції для перевірки
+            const checkName = debounce(function () {
+                checkField('name', $nameInput.val().trim(), $nameError, '');
+            }, 500);
+
+            const checkWorkId = debounce(function () {
+                checkField('work_id', $workIdInput.val().trim(), $workIdError, '').then(updateSubmitButton);
+            }, 500);
+
+            const checkRabotaId = debounce(function () {
+                checkField('rabota_id', $rabotaIdInput.val().trim(), $rabotaIdError, '').then(updateSubmitButton);
+            }, 500);
+
+            const checkJustId = debounce(function () {
+                checkField('just_id', $justIdInput.val().trim(), $justIdError, '').then(updateSubmitButton);
+            }, 500);
+
+            // Прив’язка подій
+            $nameInput.on('input', checkName);
+            $workIdInput.on('input', checkWorkId);
+            $rabotaIdInput.on('input', checkRabotaId);
+            $justIdInput.on('input', checkJustId);
+        });
+    </script>
 {% endblock %}

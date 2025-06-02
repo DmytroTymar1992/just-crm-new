@@ -5,32 +5,43 @@
 {% block content %}
     <h1>Список компаній</h1>
     <a href="{% url 'company_create' %}" class="btn btn-primary mb-3">Додати компанію</a>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Назва</th>
-                <th>Work ID</th>
-                <th>Rabota ID</th>
-                <th>Just ID</th>
-                <th>Відповідальний</th>
-                <th>Дата створення</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for company in companies %}
-                <tr>
-                    <td><a href="{% url 'company_detail' company.pk %}">{{ company.name }}</a></td>
-                    <td>{{ company.work_id|default:"—" }}</td>
-                    <td>{{ company.rabota_id|default:"—" }}</td>
-                    <td>{{ company.just_id|default:"—" }}</td>
-                    <td>{{ company.responsible|default:"—" }}</td>
-                    <td>{{ company.created_at|date:"d.m.Y H:i" }}</td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="6">Немає компаній</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+
+    <!-- Поле пошуку -->
+    <div class="mb-3">
+        <input type="text" id="searchInput" class="form-control" placeholder="Пошук за назвою, Work ID, Rabota ID, Just ID..." value="{{ request.GET.q|default:'' }}">
+    </div>
+
+    <!-- Контейнер для таблиці -->
+    <div id="companyTableContainer">
+        {% include 'companies/company_list_table.html' %}
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    let timeout = null;
+
+    $('#searchInput').on('input', function() {
+        clearTimeout(timeout);
+        const query = $(this).val();
+
+        // Затримка 300ms для зменшення кількості запитів
+        timeout = setTimeout(function() {
+            $.ajax({
+                url: '{% url "company_list" %}',
+                data: { q: query },
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                success: function(data) {
+                    $('#companyTableContainer').html(data);
+                    // Оновлюємо URL без перезавантаження
+                    const newUrl = query ? `?q=${encodeURIComponent(query)}` : window.location.pathname;
+                    history.pushState({}, '', newUrl);
+                }
+            });
+        }, 300);
+    });
+});
+</script>
 {% endblock %}

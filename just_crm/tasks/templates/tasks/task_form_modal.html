@@ -1,4 +1,3 @@
-
 <div id="taskModal" class="tasks-modal" style="display:none;">
     <div class="tasks-modal-content">
         <span class="close">×</span>
@@ -6,7 +5,16 @@
         <div class="error-messages"></div>
         <form method="post" action="{% url 'create_task_in_chat' chat.id %}" class="ajax-form">
             {% csrf_token %}
-            {{ form.as_p }}
+            {{ form.task_type.label_tag }}
+            {{ form.task_type }}
+            {{ form.target.label_tag }}
+            {{ form.target }}
+            {{ form.task_date.label_tag }}
+            {{ form.task_date }}
+            {{ form.task_time.label_tag }}
+            {{ form.task_time }}
+            {{ form.description.label_tag }}
+            {{ form.description }}
             <button type="button" class="ajax-submit" data-action="create">Створити</button>
         </form>
     </div>
@@ -17,8 +25,10 @@
     .tasks-modal-content { background-color: white; padding: 20px; border-radius: 5px; width: 400px; max-width: 90%; position: relative; }
     .close { position: absolute; right: 10px; top: 10px; font-size: 20px; cursor: pointer; }
     label { display: block; margin-bottom: 5px; }
-    input, textarea { width: 100%; padding: 5px; }
+    input, select, textarea { width: 100%; padding: 5px; margin-bottom: 10px; }
     .error-messages { color: red; margin-bottom: 10px; }
     .error-messages ul { list-style: none; padding: 0; }
     .error-messages li { margin-bottom: 5px; }
 </style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

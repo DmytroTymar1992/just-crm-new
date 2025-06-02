@@ -5,4 +5,5 @@ urlpatterns = [
     path('companies/', views.company_list, name='company_list'),
     path('companies/create/', views.company_create, name='company_create'),
     path('companies/<int:pk>/', views.company_detail, name='company_detail'),
+    path('api/check-company/', views.check_company_exists, name='check_company_exists'),
 ]

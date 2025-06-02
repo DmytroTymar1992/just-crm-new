@@ -9,12 +9,13 @@ from chats.models import Chat
 from django.utils import timezone
 from django.contrib import messages
 from .forms import TaskForm, TaskTransferForm
-from datetime import timedelta
+from datetime import timedelta, datetime
 from django.http import JsonResponse
 import logging
 import json
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
+
 
 # Налаштування логування
 logger = logging.getLogger(__name__)
@@ -77,12 +78,11 @@ def kanban_tasks_api(request):
 def create_task(request):
     if request.method == 'POST':
         contact_id = request.POST.get('contact_id')
-
         if not contact_id:
             logger.error("No contact_id provided in POST request")
             return JsonResponse({'error': 'Контакт не вказано'}, status=400)
 
-        form = TaskForm(request.POST)
+        form = TaskForm(request.POST, user=request.user)
         if form.is_valid():
             try:
                 contact = Contact.objects.get(id=contact_id)
@@ -109,19 +109,18 @@ def create_task(request):
     if not contact_id:
         logger.error(f"No contact_id provided in GET request")
         return JsonResponse({'error': 'Contact ID не вказано'}, status=400)
-    form = TaskForm()
+    form = TaskForm(user=request.user)
     context = {
         'form': form,
         'contact_id': contact_id,
     }
     return render(request, 'tasks/task_form_contacts_modal.html', context)
 
-
 @login_required
 def create_task_in_chat(request, chat_id):
     chat = get_object_or_404(Chat, id=chat_id, user=request.user)
     if request.method == 'POST':
-        form = TaskForm(request.POST)
+        form = TaskForm(request.POST, user=request.user)
         if form.is_valid():
             try:
                 task = form.save(commit=False)
@@ -146,7 +145,7 @@ def create_task_in_chat(request, chat_id):
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({'error': 'Некоректні дані форми', 'errors': form.errors.as_json()}, status=400)
             messages.error(request, 'Некоректні дані форми')
-    form = TaskForm()
+    form = TaskForm(user=request.user)
     context = {
         'form': form,
         'chat': chat,
@@ -252,3 +251,16 @@ def transfer_task(request, task_id):
         'task': task,
     }
     return render(request, 'tasks/task_transfer_modal.html', context)
+
+
+@login_required
+@require_GET
+def get_available_slots(request):
+    date_str = request.GET.get('date')
+    try:
+        date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        slots = Task.get_available_slots(date, request.user)
+        return JsonResponse({'slots': [slot.strftime('%H:%M') for slot in slots]})
+    except ValueError:
+        logger.error(f"Invalid date format: {date_str}")
+        return JsonResponse({'error': 'Невірний формат дати'}, status=400)
