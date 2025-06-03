@@ -1,8 +1,18 @@
 from django import forms
 from .models import Task
 from django.utils import timezone
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 
+def generate_all_times(start=time(9, 0), end=time(18, 0), step_minutes=5):
+    """Return list of time objects from start to end with given step."""
+    current = datetime.combine(datetime.today(), start)
+    end_dt = datetime.combine(datetime.today(), end)
+    step = timedelta(minutes=step_minutes)
+    times = []
+    while current <= end_dt:
+        times.append(current.time())
+        current += step
+    return times
 
 class TaskForm(forms.ModelForm):
     task_date = forms.DateField(
@@ -38,31 +48,18 @@ class TaskForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.user = user
 
+        # Choices для всіх слотів часу від 09:00 до 18:00 з кроком 5 хвилин
+        self.fields['task_time'].choices = [
+            (t.strftime('%H:%M'), t.strftime('%H:%M')) for t in generate_all_times()
+        ]
+
+        # Мінімальна допустима дата
+        self.fields['task_date'].widget.attrs['min'] = timezone.now().strftime('%Y-%m-%d')
+
         if self.instance and self.instance.pk:  # Для редагування
             self.fields['task_date'].initial = self.instance.task_date.date()
             self.fields['task_time'].initial = self.instance.task_date.strftime('%H:%M')
-            self.fields['task_date'].widget.attrs['min'] = timezone.now().strftime('%Y-%m-%d')
 
-            if user:
-                date_source = self.data.get('task_date')
-                if not date_source and self.instance and self.instance.pk:
-                    date_source = self.instance.task_date.date()
-                if not date_source:
-                    date_source = timezone.now().date()
-
-                if isinstance(date_source, str):
-                    try:
-                        selected_date = datetime.strptime(date_source, '%Y-%m-%d').date()
-                    except ValueError:
-                        selected_date = timezone.now().date()
-                else:
-                    selected_date = date_source
-
-                exclude_id = self.instance.id if self.instance and self.instance.pk else None
-                slots = Task.get_available_slots(selected_date, user, exclude_task_id=exclude_id)
-                self.fields['task_time'].choices = [
-                    (slot.strftime('%H:%M'), slot.strftime('%H:%M')) for slot in slots
-                ]
 
     def clean(self):
         cleaned_data = super().clean()
@@ -77,16 +74,7 @@ class TaskForm(forms.ModelForm):
                 combined_datetime = timezone.make_aware(combined_naive)
                 if combined_datetime < timezone.now():
                     self.add_error('task_date', 'Дата і час задачі не можуть бути в минулому.')
-                # Перевірка, чи слот вільний
-                exclude_id = self.instance.id if self.instance and self.instance.pk else None
-                end_dt = combined_datetime + timedelta(minutes=5)
-                if self.user and Task.objects.filter(
-                    user=self.user,
-                    task_date__gte=combined_datetime,
-                    task_date__lt=end_dt,
-                    is_completed=False
-                ).exclude(id=exclude_id).exists():
-                    self.add_error('task_time', 'Цей часовий слот уже зайнятий.')
+
                 cleaned_data['task_date'] = combined_datetime
             except ValueError:
                 self.add_error('task_time', 'Невірний формат часу.')
@@ -129,18 +117,9 @@ class TaskTransferForm(forms.Form):
         self.task = task
 
         if user:
-            date_str = self.data.get('to_date') or timezone.now().date()
-            if isinstance(date_str, str):
-                try:
-                    selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-                except ValueError:
-                    selected_date = timezone.now().date()
-            else:
-                selected_date = date_str
-            exclude_id = task.id if task else None
-            slots = Task.get_available_slots(selected_date, user, exclude_task_id=exclude_id)
+
             self.fields['to_time'].choices = [
-                (slot.strftime('%H:%M'), slot.strftime('%H:%M')) for slot in slots
+                (t.strftime('%H:%M'), t.strftime('%H:%M')) for t in generate_all_times()
             ]
 
     def clean(self):
@@ -155,15 +134,7 @@ class TaskTransferForm(forms.Form):
                 combined_datetime = timezone.make_aware(combined_naive)
                 if combined_datetime < timezone.now():
                     self.add_error('to_date', 'Дата і час задачі не можуть бути в минулому.')
-                exclude_id = self.task.id if self.task else None
-                end_dt = combined_datetime + timedelta(minutes=5)
-                if self.user and Task.objects.filter(
-                    user=self.user,
-                    task_date__gte=combined_datetime,
-                    task_date__lt=end_dt,
-                    is_completed=False
-                ).exclude(id=exclude_id).exists():
-                    self.add_error('to_time', 'Цей часовий слот уже зайнятий.')
+
                 cleaned_data['to_date'] = combined_datetime
             except ValueError:
                 self.add_error('to_time', 'Невірний формат часу.')
