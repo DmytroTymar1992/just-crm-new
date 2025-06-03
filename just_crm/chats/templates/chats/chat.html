@@ -194,6 +194,17 @@
 .busy-slot {
     color: red;
 }
+.toast-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #333;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 5px;
+    opacity: 0.9;
+    z-index: 10000;
+}
 </style>
 {% if selected_chat.id %}
 <script>
@@ -205,6 +216,13 @@
 <script>
 function pad(num) {
     return num.toString().padStart(2, '0');
+}
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast-message';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
 }
 
 function generateAllTimes() {
@@ -233,7 +251,7 @@ function loadSlots(date) {
         });
 
     }).fail(function() {
-        alert('Помилка при отриманні слотів');
+        showToast('Помилка при отриманні слотів');
     });
 
 }
@@ -264,7 +282,7 @@ $(document).on('click', '.ajax-submit', function() {
         dataType: 'json',
         success: function(response) {
             if (response.success) {
-                alert('Задачу створено!');
+                showToast('Задачу створено!');
                 $('#taskModal').hide();
             } else {
                 $('.error-messages').html('<ul>' + response.errors + '</ul>');
@@ -300,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sendUrl = buttonName === 'send_viber' ? viberSendUrl : telegramSendUrl;
 
     if (!sendUrl) {
-      alert('Немає URL для відправки повідомлення');
+      showToast('Немає URL для відправки повідомлення');
       return;
     }
 
@@ -316,14 +334,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (!resp.ok) {
         console.error('Failed to send message:', resp.status, await resp.text());
-        alert(`Помилка відправки до ${buttonName === 'send_viber' ? 'Viber' : 'Telegram'} (HTTP ${resp.status})`);
+        showToast(`Помилка відправки до ${buttonName === 'send_viber' ? 'Viber' : 'Telegram'} (HTTP ${resp.status})`);
       } else {
         input.value = ''; // Очищаємо поле після успішної відправки
       }
       // WebSocket додасть повідомлення через update_interaction
     } catch (error) {
       console.error(`Error sending message to ${buttonName === 'send_viber' ? 'Viber' : 'Telegram'}:`, error);
-      alert(`Помилка відправки повідомлення до ${buttonName === 'send_viber' ? 'Viber' : 'Telegram'}: ${error.message}`);
+      showToast(`Помилка відправки повідомлення до ${buttonName === 'send_viber' ? 'Viber' : 'Telegram'}: ${error.message}`);
     }
   });
 });
@@ -494,13 +512,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.warn('Submit button (.ajax-submit) not found in modal');
                 }
                 const dateInput = modal.querySelector('#id_task_date');
-                if (dateInput) {
+                if (dateInput && dateInput.value) {
                     loadSlots(dateInput.value);
                 }
             })
             .catch(error => {
                 console.error('Error fetching modal:', error);
-                alert('Помилка завантаження форми створення задачі');
+                showToast('Помилка завантаження форми створення задачі');
             });
     });
 });
@@ -534,13 +552,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 $('#callResultModal').modal('hide');
                 form.reset();
                 // Optional: Refresh table or update UI
-                alert('Результат дзвінка успішно оновлено');
+                showToast('Результат дзвінка успішно оновлено');
             } else {
-                alert('Помилка: ' + data.message);
+                showToast('Помилка: ' + data.message);
             }
         })
         .catch(error => {
-            alert('Помилка: ' + error);
+            showToast('Помилка: ' + error);
         });
     });
 
