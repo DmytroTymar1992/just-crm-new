@@ -1,7 +1,7 @@
 from django import forms
 from .models import Task
 from django.utils import timezone
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 class TaskForm(forms.ModelForm):
@@ -79,9 +79,11 @@ class TaskForm(forms.ModelForm):
                     self.add_error('task_date', 'Дата і час задачі не можуть бути в минулому.')
                 # Перевірка, чи слот вільний
                 exclude_id = self.instance.id if self.instance and self.instance.pk else None
+                end_dt = combined_datetime + timedelta(minutes=5)
                 if self.user and Task.objects.filter(
                     user=self.user,
-                    task_date=combined_datetime,
+                    task_date__gte=combined_datetime,
+                    task_date__lt=end_dt,
                     is_completed=False
                 ).exclude(id=exclude_id).exists():
                     self.add_error('task_time', 'Цей часовий слот уже зайнятий.')
@@ -154,9 +156,11 @@ class TaskTransferForm(forms.Form):
                 if combined_datetime < timezone.now():
                     self.add_error('to_date', 'Дата і час задачі не можуть бути в минулому.')
                 exclude_id = self.task.id if self.task else None
+                end_dt = combined_datetime + timedelta(minutes=5)
                 if self.user and Task.objects.filter(
                     user=self.user,
-                    task_date=combined_datetime,
+                    task_date__gte=combined_datetime,
+                    task_date__lt=end_dt,
                     is_completed=False
                 ).exclude(id=exclude_id).exists():
                     self.add_error('to_time', 'Цей часовий слот уже зайнятий.')

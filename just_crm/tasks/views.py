@@ -186,7 +186,10 @@ def confirm_new(request, contact_id):
 def edit_task(request, task_id):
     task = get_object_or_404(Task, id=task_id, user=request.user)
     if request.method == 'POST':
-        form = TaskForm(request.POST, instance=task)
+        data = request.POST.copy()
+        data.setdefault('task_date', task.task_date.date().isoformat())
+        data.setdefault('task_time', task.task_date.strftime('%H:%M'))
+        form = TaskForm(data, instance=task, user=request.user)
         if form.is_valid():
             try:
                 form.save()
@@ -207,7 +210,7 @@ def edit_task(request, task_id):
                 'labels': {name: field.label for name, field in form.fields.items()}
             }, status=400)
     else:
-        form = TaskForm(instance=task)
+        form = TaskForm(instance=task, user=request.user)
     context = {
         'form': form,
         'task': task,

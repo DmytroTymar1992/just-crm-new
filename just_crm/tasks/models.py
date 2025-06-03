@@ -69,9 +69,11 @@ class Task(models.Model):
 
         current_time = start_time
         while current_time <= end_time:
+            next_time = current_time + interval
             qs = Task.objects.filter(
                 user=user,
-                task_date=current_time,
+                task_date__gte=current_time,
+                task_date__lt=next_time,
                 is_completed=False
             )
             if exclude_task_id is not None:
