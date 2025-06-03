@@ -88,41 +88,7 @@ $(document).on('change', '#id_task_date', function() {
     }
 });
 
-// Делегування для відправки форми
-$(document).on('click', '.ajax-submit', function() {
-    var form = $(this).closest('form');
-    var formData = form.serialize();
-    var actionUrl = form.attr('action');
-    var csrftoken = $('input[name=csrfmiddlewaretoken]').val();
 
-    $.ajax({
-        url: actionUrl,
-        type: 'POST',
-        data: formData,
-        headers: {
-            'X-CSRFToken': csrftoken,
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                showToast('Задачу створено!');
-                $('#taskModal').hide();
-            } else {
-                $('.error-messages').html('<ul>' + response.errors + '</ul>');
-            }
-         },
-        error: function(xhr) {
-            console.error('Помилка відправки форми:', xhr.responseText);
-            try {
-                var response = JSON.parse(xhr.responseText);
-                $('.error-messages').html('<ul><li>' + response.error + '</li></ul>');
-            } catch (e) {
-                $('.error-messages').html('<ul><li>Невідома помилка сервера</li></ul>');
-            }
-        }
-    });
-});
 </script>
 <script>
 document.addEventListener("DOMContentLoaded", function() {

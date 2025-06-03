@@ -6,7 +6,27 @@
         <div class="error-messages"></div>
         <form method="post" action="{% url 'edit_task' task.id %}" class="ajax-form" data-contact-id="{{ contact_id }}">
             {% csrf_token %}
-            {{ form.as_p }}
+            <div class="form-group">
+                <label for="{{ form.task_type.id_for_label }}">{{ form.task_type.label }}</label>
+                {{ form.task_type }}
+                {% if form.task_type.errors %}
+                    <div class="error">{{ form.task_type.errors }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.target.id_for_label }}">{{ form.target.label }}</label>
+                {{ form.target }}
+                {% if form.target.errors %}
+                    <div class="error">{{ form.target.errors }}</div>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <div class="error">{{ form.description.errors }}</div>
+                {% endif %}
+            </div>
             <button type="button" class="ajax-submit" data-action="save">Зберегти</button>
             <button type="button" class="complete-task" data-task-id="{{ task.id }}">Закрити задачу</button>
             <button type="button" class="transfer-task" data-task-id="{{ task.id }}">Перенести</button>
