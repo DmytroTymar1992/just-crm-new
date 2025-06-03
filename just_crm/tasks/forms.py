@@ -41,23 +41,25 @@ class TaskForm(forms.ModelForm):
         if self.instance and self.instance.pk:  # Для редагування
             self.fields['task_date'].initial = self.instance.task_date.date()
             self.fields['task_time'].initial = self.instance.task_date.strftime('%H:%M')
-            self.fields['task_date'].widget.attrs['readonly'] = 'readonly'
-            self.fields['task_time'].widget.attrs['readonly'] = 'readonly'
-            self.fields['task_date'].disabled = True
-            self.fields['task_time'].disabled = True
-        else:  # Для створення
             self.fields['task_date'].widget.attrs['min'] = timezone.now().strftime('%Y-%m-%d')
-            # Ініціалізація слотів для поточної дати
+
             if user:
-                date_str = (self.data.get('task_date') or timezone.now().date())
-                if isinstance(date_str, str):
+                date_source = self.data.get('task_date')
+                if not date_source and self.instance and self.instance.pk:
+                    date_source = self.instance.task_date.date()
+                if not date_source:
+                    date_source = timezone.now().date()
+
+                if isinstance(date_source, str):
                     try:
-                        selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                        selected_date = datetime.strptime(date_source, '%Y-%m-%d').date()
                     except ValueError:
                         selected_date = timezone.now().date()
                 else:
-                    selected_date = date_str
-                slots = Task.get_available_slots(selected_date, user)
+                    selected_date = date_source
+
+                exclude_id = self.instance.id if self.instance and self.instance.pk else None
+                slots = Task.get_available_slots(selected_date, user, exclude_task_id=exclude_id)
                 self.fields['task_time'].choices = [
                     (slot.strftime('%H:%M'), slot.strftime('%H:%M')) for slot in slots
                 ]
@@ -67,7 +69,7 @@ class TaskForm(forms.ModelForm):
         task_date = cleaned_data.get('task_date')
         task_time = cleaned_data.get('task_time')
 
-        if task_date and task_time and not (self.instance and self.instance.pk):
+        if task_date and task_time:
             try:
                 # Об'єднуємо дату і час
                 time_obj = datetime.strptime(task_time, '%H:%M').time()
@@ -76,11 +78,12 @@ class TaskForm(forms.ModelForm):
                 if combined_datetime < timezone.now():
                     self.add_error('task_date', 'Дата і час задачі не можуть бути в минулому.')
                 # Перевірка, чи слот вільний
+                exclude_id = self.instance.id if self.instance and self.instance.pk else None
                 if self.user and Task.objects.filter(
                     user=self.user,
                     task_date=combined_datetime,
                     is_completed=False
-                ).exists():
+                ).exclude(id=exclude_id).exists():
                     self.add_error('task_time', 'Цей часовий слот уже зайнятий.')
                 cleaned_data['task_date'] = combined_datetime
             except ValueError:
