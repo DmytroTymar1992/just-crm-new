@@ -4,11 +4,15 @@
         <span class="close">×</span>
         <h2>Перенести задачу</h2>
         <div class="error-messages"></div>
-        <form method="post" action="{% url 'transfer_task' task.id %}" class="ajax-form">
+        <form method="post" action="{% url 'transfer_task' task.id %}" class="ajax-form" data-task-id="{{ task.id }}">
             {% csrf_token %}
             <p>
                 <label for="{{ form.to_date.id_for_label }}">Нова дата:</label>
                 {{ form.to_date }}
+            </p>
+            <p>
+                <label for="{{ form.to_time.id_for_label }}">Новий час:</label>
+                {{ form.to_time }}
             </p>
             <p>
                 <label for="{{ form.reason.id_for_label }}">Причина перенесення:</label>

@@ -96,14 +96,18 @@ class TaskForm(forms.ModelForm):
 
 
 class TaskTransferForm(forms.Form):
-    to_date = forms.DateTimeField(
-        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+    to_date = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date'}),
         label="Нова дата",
         required=True,
-        input_formats=['%Y-%m-%dT%H:%M'],
         error_messages={
             'required': 'Будь ласка, вкажіть нову дату.'
         }
+    )
+    to_time = forms.ChoiceField(
+        label="Новий час",
+        required=True,
+        error_messages={'required': 'Будь ласка, оберіть час.'}
     )
     reason = forms.CharField(
         widget=forms.Textarea(attrs={'rows': 4}),
@@ -114,8 +118,46 @@ class TaskTransferForm(forms.Form):
         }
     )
 
-    def clean_to_date(self):
-        to_date = self.cleaned_data['to_date']
-        if to_date < timezone.now():
-            raise forms.ValidationError("Нова дата не може бути в минулому")
-        return to_date
+    def __init__(self, *args, user=None, task=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        self.task = task
+
+        if user:
+            date_str = self.data.get('to_date') or timezone.now().date()
+            if isinstance(date_str, str):
+                try:
+                    selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    selected_date = timezone.now().date()
+            else:
+                selected_date = date_str
+            exclude_id = task.id if task else None
+            slots = Task.get_available_slots(selected_date, user, exclude_task_id=exclude_id)
+            self.fields['to_time'].choices = [
+                (slot.strftime('%H:%M'), slot.strftime('%H:%M')) for slot in slots
+            ]
+
+    def clean(self):
+        cleaned_data = super().clean()
+        to_date = cleaned_data.get('to_date')
+        to_time = cleaned_data.get('to_time')
+
+        if to_date and to_time:
+            try:
+                time_obj = datetime.strptime(to_time, '%H:%M').time()
+                combined_naive = datetime.combine(to_date, time_obj)
+                combined_datetime = timezone.make_aware(combined_naive)
+                if combined_datetime < timezone.now():
+                    self.add_error('to_date', 'Дата і час задачі не можуть бути в минулому.')
+                exclude_id = self.task.id if self.task else None
+                if self.user and Task.objects.filter(
+                    user=self.user,
+                    task_date=combined_datetime,
+                    is_completed=False
+                ).exclude(id=exclude_id).exists():
+                    self.add_error('to_time', 'Цей часовий слот уже зайнятий.')
+                cleaned_data['to_date'] = combined_datetime
+            except ValueError:
+                self.add_error('to_time', 'Невірний формат часу.')
+        return cleaned_data

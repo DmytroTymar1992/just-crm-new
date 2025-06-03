@@ -53,8 +53,13 @@ class Task(models.Model):
         super().save(*args, **kwargs)
 
     @staticmethod
-    def get_available_slots(date, user):
-        """Повертає список вільних 5-хвилинних слотів для користувача на задану дату."""
+    def get_available_slots(date, user, exclude_task_id=None):
+        """Повертає список вільних 5-хвилинних слотів для користувача на задану дату.
+
+        ``exclude_task_id`` дозволяє виключити задачу з перевірки зайнятості
+        слоту. Це корисно при редагуванні або перенесенні існуючої задачі,
+        щоб її власний час вважався вільним.
+        """
         start_naive = datetime.combine(date, time(9, 0))
         end_naive = datetime.combine(date, time(18, 0))
         start_time = timezone.make_aware(start_naive)
@@ -64,11 +69,14 @@ class Task(models.Model):
 
         current_time = start_time
         while current_time <= end_time:
-            if not Task.objects.filter(
+            qs = Task.objects.filter(
                 user=user,
                 task_date=current_time,
                 is_completed=False
-            ).exists():
+            )
+            if exclude_task_id is not None:
+                qs = qs.exclude(id=exclude_task_id)
+            if not qs.exists():
                 slots.append(current_time.time())
             current_time += interval
 

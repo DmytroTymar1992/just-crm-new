@@ -223,7 +223,7 @@ def edit_task(request, task_id):
 def transfer_task(request, task_id):
     task = get_object_or_404(Task, id=task_id, user=request.user)
     if request.method == 'POST':
-        form = TaskTransferForm(request.POST)
+        form = TaskTransferForm(request.POST, user=request.user, task=task)
         if form.is_valid():
             try:
                 TaskTransfer.objects.create(
@@ -245,7 +245,7 @@ def transfer_task(request, task_id):
                 'errors': form.errors.as_json(),
                 'labels': {name: field.label for name, field in form.fields.items()}
             }, status=400)
-    form = TaskTransferForm()
+    form = TaskTransferForm(user=request.user, task=task)
     context = {
         'form': form,
         'task': task,
@@ -257,9 +257,11 @@ def transfer_task(request, task_id):
 @require_GET
 def get_available_slots(request):
     date_str = request.GET.get('date')
+    exclude_id = request.GET.get('exclude_task_id')
     try:
         date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        slots = Task.get_available_slots(date, request.user)
+        exclude_id = int(exclude_id) if exclude_id else None
+        slots = Task.get_available_slots(date, request.user, exclude_task_id=exclude_id)
         return JsonResponse({'slots': [slot.strftime('%H:%M') for slot in slots]})
     except ValueError:
         logger.error(f"Invalid date format: {date_str}")

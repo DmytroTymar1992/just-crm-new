@@ -60,9 +60,9 @@ function generateAllTimes() {
     return times;
 }
 
-function loadSlots(date) {
-    $.get('{% url "get_available_slots" %}', {date: date}, function(data) {
-        var timeSelect = $('#id_task_time');
+function loadSlots(date, selectSelector, excludeId) {
+    $.get('{% url "get_available_slots" %}', {date: date, exclude_task_id: excludeId}, function(data) {
+        var timeSelect = $(selectSelector);
         timeSelect.empty();
         var available = data.slots || [];
         var allTimes = generateAllTimes();
@@ -84,10 +84,16 @@ function loadSlots(date) {
 $(document).on('change', '#id_task_date', function() {
     var selectedDate = $(this).val();
     if (selectedDate) {
-        loadSlots(selectedDate);
+        loadSlots(selectedDate, '#id_task_time', null);
     }
 });
-
+$(document).on('change', '#id_to_date', function() {
+    var selectedDate = $(this).val();
+    var excludeId = $(this).closest('form').data('task-id');
+    if (selectedDate) {
+        loadSlots(selectedDate, '#id_to_time', excludeId);
+    }
+});
 
 </script>
 <script>
