@@ -138,69 +138,362 @@
         text-align: left;
     }
 </style>
+<style>
+.chat-container {
+    display: flex;
+    height: 100vh;
+    max-width: 1200px;
+    margin: 0 auto;
+}
 
+.chat-sidebar {
+    width: 25%;
+    border-right: 1px solid #ddd;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+.chat-list {
+    list-style: none;
+    padding: 0;
+}
+
+.chat-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.chat-item:hover, .chat-list li.active {
+    background-color: #f5f5f5;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 5px;
+    margin-right: 10px;
+}
+
+.avatar-placeholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    color: #fff;
+}
+
+.chat-info {
+    flex: 1;
+}
+
+.chat-main {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #ddd;
+}
+
+.chat-header {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+.message {
+    margin-bottom: 15px;
+}
+
+.message.sent {
+    text-align: right;
+}
+
+.message.received {
+    text-align: left;
+}
+
+.message-content {
+    display: inline-block;
+    padding: 10px;
+    border-radius: 10px;
+    background-color: #f0f0f0;
+    max-width: 70%;
+}
+
+.message.sent .message-content {
+    background-color: #0084ff;
+    color: #fff;
+}
+
+.message-form {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #ddd;
+}
+
+.message-form textarea {
+    flex: 1;
+    resize: none;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.message-form button {
+    margin-left: 10px;
+    padding: 10px 20px;
+    background-color: #0084ff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+}
+
+.chat-info-sidebar {
+    width: 25%;
+    padding: 10px;
+}
+
+/* Стиль для зайнятих слотів часу */
+.busy-slot {
+    color: red;
+}
+
+.toast-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #333;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 5px;
+    opacity: 0.9;
+    z-index: 10000;
+}
+
+.error-input {
+    box-shadow: 0 0 5px 2px red !important;
+    animation: blink 0.5s step-end infinite !important;
+}
+
+@keyframes blink {
+    50% { box-shadow: 0 0 5px 2px transparent !important; }
+}
+</style>
+
+<style>
+    /* Скидання дефолтних відступів і налаштування повноекранного макету */
+    body, html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .container {
+        scroll-snap-type: y mandatory;
+        overflow-y: auto;
+        height: 100vh;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Секції на всю висоту екрану */
+    .company-section, .contacts-section {
+        height: 100vh;
+        width: 100%;
+        scroll-snap-align: start;
+        display: flex;
+        flex-direction: column;
+        padding: 2rem;
+        box-sizing: border-box;
+    }
+
+    .company-section {
+        background: #f8fafc;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .contacts-section {
+        background: #ffffff;
+        justify-content: flex-start;
+    }
+
+    /* Картка компанії */
+    .card {
+        background: #ffffff;
+        border-radius: 1rem;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+        max-width: 800px;
+        width: 100%;
+        margin: 0 auto;
+    }
+
+    /* Контейнер для контактів і взаємодій */
+    .contacts-container {
+        display: flex;
+        gap: 2rem;
+        width: 100%;
+        margin-top: 1rem;
+        flex-grow: 1;
+    }
+
+    .contacts-list, .interactions-panel {
+        background: #ffffff;
+        border-radius: 1rem;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        overflow-y: auto;
+        width: 40%;
+    }
+
+    .interactions-panel {
+        width: 60%;
+        padding: 2rem;
+        position: relative;
+    }
+
+    /* Адаптивність */
+    @media (max-width: 768px) {
+        .contacts-container {
+            flex-direction: column;
+        }
+
+        .contacts-list, .interactions-panel {
+            width: 100%;
+            height: 50%;
+        }
+
+        .interactions-panel {
+            padding: 1.5rem;
+        }
+
+        .company-section, .contacts-section {
+            padding: 1rem;
+        }
+    }
+</style>
 <div class="container">
-    <h1>{{ company.name }}</h1>
-    <div class="card">
-        <div class="card-body">
-            <p><strong>Work ID:</strong> {{ company.work_id|default:"—" }}</p>
-            <p><strong>Rabota ID:</strong> {{ company.rabota_id|default:"—" }}</p>
-            <p><strong>Just ID:</strong> {{ company.just_id|default:"—" }}</p>
-            <p><strong>Відповідальний:</strong> {{ company.responsible|default:"—" }}</p>
-            <p><strong>Дата створення:</strong> {{ company.created_at|date:"d.m.Y H:i" }}</p>
-            <p><strong>Слаг:</strong> {{ company.slug }}</p>
+    <section class="company-section" id="company-section">
+        <h1>{{ company.name }}</h1>
+        <div class="card">
+            <div class="card-body">
+                <p><strong>Work ID:</strong> {{ company.work_id|default:"—" }}</p>
+                <p><strong>Rabota ID:</strong> {{ company.rabota_id|default:"—" }}</p>
+                <p><strong>Just ID:</strong> {{ company.just_id|default:"—" }}</p>
+                <p><strong>Відповідальний:</strong> {{ company.responsible|default:"—" }}</p>
+                <p><strong>Дата створення:</strong> {{ company.created_at|date:"d.m.Y H:i" }}</p>
+                <p><strong>Слаг:</strong> {{ company.slug }}</p>
+            </div>
         </div>
-    </div>
+        <a href="{% url 'company_list' %}" class="btn btn-secondary">Назад до списку</a>
+    </section>
 
-    <h2>Контакти компанії</h2>
-    <a href="{% url 'contact_create' %}?company_id={{ company.pk }}" class="btn btn-primary">Додати контакт</a>
-    <div class="contacts-container">
-        <div class="contacts-list">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Ім’я</th>
-                        <th>Прізвище</th>
-                        <th>Посада</th>
-                        <th>Дата створення</th>
-                    </tr>
-                </thead>
-                <tbody id="contacts-table">
-                    {% for contact in contacts %}
-                        <tr data-contact-id="{{ contact.pk }}" onclick="selectContact({{ contact.pk }})">
-                            <td><a href="{% url 'contact_detail' contact.pk %}" onclick="event.stopPropagation();">{{ contact.first_name }}</a></td>
-                            <td>{{ contact.last_name|default:"—" }}</td>
-                            <td>{{ contact.position|default:"—" }}</td>
-                            <td>{{ contact.created_at|date:"d.m.Y H:i" }}</td>
-                        </tr>
-                    {% empty %}
+    <section class="contacts-section" id="contacts-section">
+        <h2>Контакти компанії</h2>
+        <a href="{% url 'contact_create' %}?company_id={{ company.pk }}" class="btn btn-primary">Додати контакт</a>
+        <div class="contacts-container">
+            <div class="contacts-list">
+                <table class="table">
+                    <thead>
                         <tr>
-                            <td colspan="4">Немає контактів</td>
+                            <th>Ім’я</th>
+                            <th>Прізвище</th>
+                            <th>Посада</th>
+                            <th>Дата створення</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody id="contacts-table">
+                        {% for contact in contacts %}
+                            <tr data-contact-id="{{ contact.pk }}" onclick="selectContact({{ contact.pk }})">
+                                <td><a href="{% url 'contact_detail' contact.pk %}" onclick="event.stopPropagation();">{{ contact.first_name }}</a></td>
+                                <td>{{ contact.last_name|default:"—" }}</td>
+                                <td>{{ contact.position|default:"—" }}</td>
+                                <td>{{ contact.created_at|date:"d.m.Y H:i" }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="4">Немає контактів</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="interactions-panel" id="interactions-panel">
+                <div class="loading-spinner" id="loading-spinner"></div>
+                <h3 id="interactions-title">Виберіть контакт</h3>
+                <div id="interactions-content"></div>
+            </div>
         </div>
-        <div class="interactions-panel" id="interactions-panel">
-            <div class="loading-spinner" id="loading-spinner"></div>
-            <h3 id="interactions-title">Виберіть контакт</h3>
-            <div id="interactions-content"></div>
-        </div>
-    </div>
-
-    <a href="{% url 'company_list' %}" class="btn btn-secondary">Назад до списку</a>
+    </section>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const container = document.querySelector('.container');
+    const sections = document.querySelectorAll('.company-section, .contacts-section');
+    const contactsContainer = document.querySelector('.contacts-container');
+    const contactsList = document.querySelector('.contacts-list');
+    const interactionsPanel = document.querySelector('.interactions-panel');
+    const contactsHeader = document.querySelector('.contacts-section h2');
+    const addContactButton = document.querySelector('.contacts-section .btn-primary');
 
+    // Плавний скрол між секціями
+    sections.forEach(section => {
+        section.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'A' && e.target.tagName !== 'BUTTON') {
+                section.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    });
+
+    // Динамічне встановлення висоти contacts-container
+    function setContactsHeight() {
+        const windowHeight = window.innerHeight;
+        const headerRect = contactsHeader.getBoundingClientRect();
+        const buttonRect = addContactButton.getBoundingClientRect();
+        const sectionPadding = 2 * 16; // 2rem padding у пікселях (припускаємо 1rem = 16px)
+        const marginTop = 16; // margin-top: 1rem для contacts-container
+
+        // Висота заголовка + кнопки + відступи
+        const headerAndButtonHeight = headerRect.height + buttonRect.height + marginTop + sectionPadding;
+
+        // Встановлюємо висоту contacts-container
+        const availableHeight = windowHeight - headerAndButtonHeight;
+        contactsContainer.style.height = `${availableHeight}px`;
+
+        // Встановлюємо висоту contacts-list і interactions-panel
+        contactsList.style.height = `${availableHeight}px`;
+        interactionsPanel.style.height = `${availableHeight}px`;
+    }
+
+    // Викликаємо при завантаженні
+    setContactsHeight();
+
+    // Оновлюємо при зміні розміру вікна
+    window.addEventListener('resize', setContactsHeight);
+});
+</script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const contactsTable = document.getElementById('contacts-table');
     const interactionsContent = document.getElementById('interactions-content');
+    const interactionsPanel = document.getElementById('interactions-panel');
     const interactionsTitle = document.getElementById('interactions-title');
     const loadingSpinner = document.getElementById('loading-spinner');
 
     let isLoading = false;
     let currentContactId = null;
-    let page = 1;
+    let page = null;
     let hasPrevious = false;
 
     function showToast(message) {
@@ -211,7 +504,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => toast.remove(), 3000);
     }
 
-    function loadInteractions(contactId, pageNumber, append = false) {
+    function loadInteractions(contactId, pageNumber = null, append = false, prevScrollHeight = 0) {
         if (isLoading) return;
         isLoading = true;
 
@@ -221,7 +514,10 @@ document.addEventListener('DOMContentLoaded', () => {
             loadingSpinner.style.display = 'block';
         }
 
-        fetch(`/companies/${contactId}/interactions/?page=${pageNumber}`, {
+        const url = pageNumber ?
+            `/companies/${contactId}/interactions/?page=${pageNumber}` :
+            `/companies/${contactId}/interactions/`;
+        fetch(url, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
@@ -248,13 +544,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         interactionsContent.insertBefore(nodes[i], interactionsContent.firstChild);
                     }
                     // Оновлюємо позицію прокрутки
-                    const newScrollHeight = interactionsContent.scrollHeight;
-                    interactionsContent.scrollTop = newScrollHeight - interactionsContent.scrollHeight + interactionsContent.scrollTop;
+                    const newScrollHeight = interactionsPanel.scrollHeight;
+                    interactionsPanel.scrollTop = newScrollHeight - prevScrollHeight + interactionsPanel.scrollTop;
                 } else {
                     interactionsContent.innerHTML = data.html;
                     // Прокрутка донизу після рендерингу
                     setTimeout(() => {
-                        interactionsContent.scrollTop = interactionsContent.scrollHeight;
+                        interactionsPanel.scrollTop = interactionsPanel.scrollHeight;
                     }, 0);
                 }
                 hasPrevious = data.has_previous;
@@ -288,23 +584,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Скидаємо пагінацію
         currentContactId = contactId;
-        page = 1;
+        page = null;
         hasPrevious = false;
 
-        // Завантажуємо першу сторінку
-        loadInteractions(contactId, page);
+        // Завантажуємо останню сторінку
+        loadInteractions(contactId);
     };
 
     // Обробка прокрутки для завантаження старіших взаємодій
-    interactionsContent.addEventListener('scroll', () => {
+    interactionsPanel.addEventListener('scroll', () => {
         if (isLoading || !hasPrevious || !currentContactId) return;
 
         // Перевірка, чи прокручено майже до верху
-        if (interactionsContent.scrollTop < 50) {
-            isLoading = true;
-            const previousScrollHeight = interactionsContent.scrollHeight;
+        if (interactionsPanel.scrollTop < 50) {
+            const previousScrollHeight = interactionsPanel.scrollHeight;
             page -= 1; // Завантажуємо попередню сторінку
-            loadInteractions(currentContactId, page, true);
+            loadInteractions(currentContactId, page, true, previousScrollHeight);
         }
     });
 
