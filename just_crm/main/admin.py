@@ -11,7 +11,7 @@ class CustomUserAdmin(UserAdmin):
     # Поля для редагування існуючого користувача
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
-        ('Personal info', {'fields': ('first_name', 'last_name', 'email', 'telegram_id', 'role', 'status', 'phonet_extension')}),
+        ('Personal info', {'fields': ('first_name', 'last_name', 'email', 'telegram_id', 'role', 'status', 'phonet_extension', 'welcome_message', 'phone_number')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
         ('E-chat', {'fields': ('echat_instance_id', 'echat_api_key')}),

@@ -1,0 +1,31 @@
+{% load i18n %}
+<div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="taskDetailModalLabel">Деталі задачі</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="task-details">
+                    <p><strong>Тип задачі:</strong> {{ task.get_task_type_display }}</p>
+                    <p><strong>Ціль:</strong> {{ task.target }}</p>
+                    <p><strong>Опис:</strong> {{ task.description|default:"Немає опису" }}</p>
+                    <p><strong>Контакт:</strong> {{ contact.first_name }}
+                    {% if contact.last_name %}{{ contact.last_name }}{% endif %}</p>
+
+                    <p><strong>Дата задачі:</strong> {{ task.task_date|date:"d.m.Y H:i" }}</p>
+                    <p><strong>Статус:</strong> {% if task.is_completed %}Виконано{% else %}Не виконано{% endif %}</p>
+                    {% if task.is_completed %}
+                        <p><strong>Дата виконання:</strong> {{ task.completed_at|date:"d.m.Y H:i"|default:"—" }}</p>
+                    {% endif %}
+                    <p><strong>Створено:</strong> {{ task.created_at|date:"d.m.Y H:i" }}</p>
+                    <p><strong>Користувач:</strong> {{ task.user.username }}</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>
+            </div>
+        </div>
+    </div>
+</div>

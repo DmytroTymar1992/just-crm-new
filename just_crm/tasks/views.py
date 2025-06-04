@@ -3,9 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from .models import Task, TaskTransfer
+from .models import Task, TaskTransfer, TasksMessage
 from contacts.models import Contact
-from chats.models import Chat
+from chats.models import Chat, Interaction
 from django.utils import timezone
 from django.contrib import messages
 from .forms import TaskForm, TaskTransferForm
@@ -127,6 +127,42 @@ def create_task_in_chat(request, chat_id):
                 task.user = request.user
                 task.contact = chat.contact
                 task.save()
+
+                user = request.user
+
+                # Create Interaction with type 'system'
+                interaction = Interaction.objects.create(
+                    user=request.user,
+                    contact=chat.contact,
+                    interaction_type=Interaction.InteractionType.SYSTEM,
+                    sender=Interaction.SenderType.SYSTEM,
+                    description=f"Task created: {task.task_type} - {task.target}",
+                    date=timezone.now(),
+                    chat=chat
+                )
+
+                # Create TasksMessage
+                TasksMessage.objects.create(
+                    interaction=interaction,
+                    contact=chat.contact,
+                    type=TasksMessage.Type.CREATED,
+                    task=task,
+                    created_at=timezone.now()
+                )
+
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    f'chat_{chat.id}',
+                    {
+                        'type': 'update_interaction',
+                        'interaction_id': interaction.id,
+                    }
+                )
+                async_to_sync(channel_layer.group_send)(
+                    f'user_{user.id}_chats',
+                    {'type': 'update_chats'}
+                )
+
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                     return JsonResponse({'success': True})
                 messages.success(request, 'Задачу створено!')
@@ -162,6 +198,43 @@ def complete_task(request, task_id):
         task.is_completed = True
         task.completed_at = timezone.now()
         task.save()
+
+        chat = Chat.objects.filter(user=request.user, contact=task.contact).first()
+        user = request.user
+
+        # Create Interaction with type 'system'
+        interaction = Interaction.objects.create(
+            user=request.user,
+            contact=task.contact,
+            interaction_type=Interaction.InteractionType.SYSTEM,
+            sender=Interaction.SenderType.SYSTEM,
+            description=f"Task complete: {task.task_type} - {task.target}",
+            date=timezone.now(),
+            chat=chat
+        )
+
+        # Create TasksMessage
+        TasksMessage.objects.create(
+            interaction=interaction,
+            contact=task.contact,
+            type=TasksMessage.Type.COMPLETE,
+            task=task,
+            created_at=timezone.now()
+        )
+
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'chat_{chat.id}',
+            {
+                'type': 'update_interaction',
+                'interaction_id': interaction.id,
+            }
+        )
+        async_to_sync(channel_layer.group_send)(
+            f'user_{user.id}_chats',
+            {'type': 'update_chats'}
+        )
+
         return JsonResponse({
             'success': True,
             'contact_id': task.contact.id
@@ -235,8 +308,44 @@ def transfer_task(request, task_id):
                     from_date=task.task_date,
                     to_date=form.cleaned_data['to_date'],
                 )
+                chat = Chat.objects.filter(user=request.user, contact=task.contact).first()
+                user = request.user
+                # Create Interaction with type 'system'
+                interaction = Interaction.objects.create(
+                    user=request.user,
+                    contact=task.contact,
+                    interaction_type=Interaction.InteractionType.SYSTEM,
+                    sender=Interaction.SenderType.SYSTEM,
+                    description=f"Task transfer: {task.task_type} - {task.target} з {task.task_date} на {form.cleaned_data['to_date']}",
+                    date=timezone.now(),
+                    chat=chat
+                )
+
+                # Create TasksMessage
+                TasksMessage.objects.create(
+                    interaction=interaction,
+                    contact=task.contact,
+                    type=TasksMessage.Type.COMPLETE,
+                    task=task,
+                    created_at=timezone.now()
+                )
                 task.task_date = form.cleaned_data['to_date']
                 task.save()
+
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    f'chat_{chat.id}',
+                    {
+                        'type': 'update_interaction',
+                        'interaction_id': interaction.id,
+                    }
+                )
+                async_to_sync(channel_layer.group_send)(
+                    f'user_{user.id}_chats',
+                    {'type': 'update_chats'}
+                )
+
+
                 return JsonResponse({'success': True})
             except ValueError as e:
                 logger.error(f"Error in transfer_task: {str(e)}, POST data: {request.POST}")
@@ -269,3 +378,13 @@ def get_available_slots(request):
     except ValueError:
         logger.error(f"Invalid date format: {date_str}")
         return JsonResponse({'error': 'Невірний формат дати'}, status=400)
+
+
+@login_required
+def task_detail(request, task_id):
+    task = get_object_or_404(Task, id=task_id, user=request.user)
+    context = {
+        'task': task,
+        'contact': task.contact,
+    }
+    return render(request, 'tasks/task_detail_modal.html', context)

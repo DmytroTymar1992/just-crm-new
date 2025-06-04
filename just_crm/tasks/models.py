@@ -3,7 +3,7 @@ from django.conf import settings
 from contacts.models import Contact
 from django.utils import timezone
 from datetime import time, datetime, timedelta
-
+from chats.models import Interaction
 
 class Task(models.Model):
     # Типи завдань
@@ -98,3 +98,21 @@ class TaskTransfer(models.Model):
     class Meta:
         verbose_name = "Перенесення задачі"
         verbose_name_plural = "Перенесення задач"
+
+
+class TasksMessage(models.Model):
+    class Type(models.TextChoices):
+        CREATED = 'created', 'Created'
+        EDIT = 'edit', 'Edit'
+        TRANSFER = 'transfer', 'Transfer'
+        COMPLETE = 'complete', 'Complete'
+
+    interaction = models.ForeignKey(Interaction, on_delete=models.CASCADE, related_name='tasks')
+    created_at = models.DateTimeField(default=timezone.now)
+    contact = models.ForeignKey(Contact, on_delete=models.CASCADE, related_name='tasks_messages')
+    type = models.CharField(max_length=20, choices=Type.choices, verbose_name='Тип')
+    task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='messages')
+
+
+    def __str__(self):
+        return f"Email to {self.contact.name} - {self.subject} on {self.created_at}"

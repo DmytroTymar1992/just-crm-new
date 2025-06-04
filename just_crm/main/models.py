@@ -47,6 +47,14 @@ class CustomUser(AbstractUser):
         help_text='Унікальний ID користувача в Telegram (наприклад, 123456789)'
     )
 
+    phone_number = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        verbose_name=_('Phone Number'),
+        help_text=_('Номер телефону користувача для використання в привітальних повідомленнях')
+    )
+
     # -- E-chat канал Viber ----------------------------------------------------
     echat_instance_id = models.CharField(
         max_length=64,
@@ -72,6 +80,15 @@ class CustomUser(AbstractUser):
         blank=True, null=True,
         verbose_name='E-chat API-Key',
         help_text='Ключ для вихідних запитів (беремо з кабінету E-chat)',
+    )
+
+    welcome_message = models.TextField(
+        max_length=500,
+        blank=True,
+        null=True,
+        verbose_name=_('Welcome Message'),
+        help_text=_(
+            'Привітальне повідомлення. Використовуйте {link} для referral_link, {phone} для номера телефону, {contact_name} для імені контакту.')
     )
 
 

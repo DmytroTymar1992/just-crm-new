@@ -82,7 +82,13 @@
                 </button>
             {% endif %}
         {% elif interaction.interaction_type == 'system' %}
-            <p><em>{{ interaction.description }}</em></p>
+            {% with task_message=interaction.tasks.first %}
+            <p>
+                {% if task_message %}
+                    <em class="btn btn-info btn-sm task-detail-btn" data-task-id="{{ task_message.task.id }}">{{ interaction.description }}</em>
+                {% endif %}
+            </p>
+        {% endwith %}
         {% endif %}
         <small>{{ interaction.date|date:"d.m.Y H:i" }}</small>
     </div>

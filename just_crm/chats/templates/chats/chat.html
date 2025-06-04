@@ -99,7 +99,7 @@
 .avatar {
     width: 40px;
     height: 40px;
-    border-radius: 50%;
+    border-radius: 5px;
     margin-right: 10px;
 }
 
@@ -194,6 +194,7 @@
 .busy-slot {
     color: red;
 }
+
 .toast-message {
     position: fixed;
     top: 20px;
@@ -205,18 +206,138 @@
     opacity: 0.9;
     z-index: 10000;
 }
+
+.error-input {
+    box-shadow: 0 0 5px 2px red !important;
+    animation: blink 0.5s step-end infinite !important;
+}
+
+@keyframes blink {
+    50% { box-shadow: 0 0 5px 2px transparent !important; }
+}
 </style>
 {% if selected_chat.id %}
 <script>
-  const chatId  = {{ selected_chat.id|default:"null" }};
-  const viberSendUrl = chatId ? "{% url 'chat-send-message' selected_chat.id %}" : null;
-  const telegramSendUrl = chatId ? "{% url 'chat-send-message-telegram' selected_chat.id %}" : null;
+    // Константи для чату
+    const referralLink = "{{ selected_chat.contact.referral_link|default:''|escapejs }}"; // Посилання контакту
+    const welcomeMessage = "{{ request.user.welcome_message|default:''|escapejs }}"; // Привітальне повідомлення користувача
+    const contactName = "{{ selected_chat.contact.first_name|default:''|escapejs }}"; // Ім’я контакту
+    const userPhone = "{{ request.user.phone_number|default:request.user.phonet_extension|default:''|escapejs }}"; // Номер телефону користувача
+    const chatId = {{ selected_chat.id|default:"null" }}; // ID чату
+    const viberSendUrl = chatId ? "{% url 'chat-send-message' selected_chat.id %}" : null; // URL для відправки в Viber
+    const telegramSendUrl = chatId ? "{% url 'chat-send-message-telegram' selected_chat.id %}" : null; // URL для відправки в Telegram
+    const ukrainianNames = [
+        'Олександр', 'Олена', 'Андрій', 'Юлія', 'Іван', 'Наталія', 'Максим', 'Анна',
+        'Дмитро', 'Катерина', 'Сергій', 'Марія', 'Володимир', 'Тетяна', 'Михайло', 'Софія',
+        'Віктор', 'Ірина', 'Олег', 'Анастасія', 'Павло', 'Оксана', 'Роман', 'Вікторія',
+        'Ярослав', 'Христина', 'Євген', 'Дарія', 'Богдан', 'Людмила', 'Артем', 'Аліна',
+        'Єлизавета' // Додано для прикладу
+    ]; // Словник українських імен
 </script>
 {% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const msgInput = document.getElementById('msgInput');
+
+    if (!chatId || !msgInput) return; // Перевірка наявності чату та поля
+
+    // Обробка введення тексту
+    msgInput.addEventListener('input', (e) => {
+        const text = e.target.value.trim().toLowerCase();
+
+        // Скидаємо стилі помилки, якщо текст не "прив."
+        if (msgInput.classList.contains('error-input') && text !== 'прив.') {
+            msgInput.classList.remove('error-input');
+            console.log('Removed error-input class due to text change');
+        }
+
+        if (text === 'пос.') {
+            msgInput.classList.remove('error-input'); // Очищаємо помилку
+            if (referralLink) {
+                e.target.value = referralLink; // Заміна "пос." на referral_link
+            } else {
+                showToast('Посилання для контакту відсутнє');
+            }
+        } else if (text === 'прив.') {
+            if (!welcomeMessage) {
+                showToast('Привітальне повідомлення не налаштовано');
+                return;
+            }
+            if (!referralLink) {
+                showToast('Посилання для контакту відсутнє');
+                return;
+            }
+            if (!userPhone) {
+                showToast('Номер телефону користувача не налаштовано');
+                return;
+            }
+
+            // Перевірка імені контакту
+            const nameWords = contactName.trim().split(/\s+/); // Розбиваємо на слова
+            const validName = nameWords.find(word =>
+                ukrainianNames.some(name => name.toLowerCase() === word.trim().toLowerCase())
+            ); // Знаходимо перше ім’я, яке є в словнику
+            const isValidName = !!validName; // Чи знайдено валідне ім’я
+
+            let finalMessage = welcomeMessage
+                .replace('{link}', referralLink)
+                .replace('{phone}', userPhone)
+                .replace('{contact_name}', isValidName ? validName : '');
+
+            e.target.value = finalMessage;
+
+            if (!isValidName && contactName) {
+                msgInput.classList.add('error-input');
+                showToast('Ім’я контакту некоректне');
+                console.log('Applied error-input class. contactName:', contactName, 'isValidName:', isValidName, 'nameWords:', nameWords, 'validName:', validName);
+            } else {
+                console.log('No error-input applied. contactName:', contactName, 'isValidName:', isValidName, 'validName:', validName);
+            }
+        }
+    });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.task-detail-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            const taskId = this.getAttribute('data-task-id');
+            fetch(`/tasks/detail/${taskId}/`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.text())
+            .then(html => {
+                const modalContainer = document.createElement('div');
+                modalContainer.innerHTML = html;
+                document.body.appendChild(modalContainer);
+                const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
+                modal.show();
+                // Видаляємо модалку після закриття
+                document.getElementById('taskDetailModal').addEventListener('hidden.bs.modal', function () {
+                    modalContainer.remove();
+                });
+            })
+            .catch(error => {
+                console.error('Помилка завантаження деталей задачі:', error);
+            });
+        });
+    });
+});
+</script>
+
+
+
+
+<!-- 4. Завантаження та відображення вільних часових слотів -->
 <script>
 function pad(num) {
     return num.toString().padStart(2, '0');
 }
+
 function showToast(message) {
     const toast = document.createElement('div');
     toast.className = 'toast-message';
@@ -231,14 +352,14 @@ function generateAllTimes() {
     var end = new Date('1970-01-01T18:00:00');
     while (current <= end) {
         times.push(pad(current.getHours()) + ':' + pad(current.getMinutes()));
-        current.setMinutes(current.getMinutes() + 5);
+        current.setMinutes(current.getMinutes() + 10);
     }
     return times;
 }
 
-function loadSlots(date) {
-    $.get('{% url "get_available_slots" %}', {date: date}, function(data) {
-        var timeSelect = $('#id_task_time');
+function loadSlots(date, selectSelector, excludeId) {
+    $.get('{% url "get_available_slots" %}', {date: date, exclude_task_id: excludeId}, function(data) {
+        var timeSelect = $(selectSelector);
         timeSelect.empty();
         var available = data.slots || [];
         var allTimes = generateAllTimes();
@@ -249,21 +370,25 @@ function loadSlots(date) {
             }
             timeSelect.append(option);
         });
-
     }).fail(function() {
         showToast('Помилка при отриманні слотів');
     });
-
 }
 
-// Обробка зміни дати через делегування події
 $(document).on('change', '#id_task_date', function() {
     var selectedDate = $(this).val();
     if (selectedDate) {
-        loadSlots(selectedDate);
+        loadSlots(selectedDate, '#id_task_time', null);
     }
 });
 
+$(document).on('change', '#id_to_date', function() {
+    var selectedDate = $(this).val();
+    var excludeId = $(this).closest('form').data('task-id');
+    if (selectedDate) {
+        loadSlots(selectedDate, '#id_to_time', excludeId);
+    }
+});
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {

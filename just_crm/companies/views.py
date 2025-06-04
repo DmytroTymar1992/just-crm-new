@@ -7,7 +7,8 @@ from main.pagination_utils import get_paginated_objects
 from vacancies.models import Vacancy
 from django.http import JsonResponse
 from django.db.models import Q
-
+from chats.models import Interaction
+from contacts.models import Contact
 
 @login_required
 def company_list(request):
@@ -107,3 +108,25 @@ def company_detail(request, pk):
     company = get_object_or_404(Company, pk=pk)  # Використання pk замість slug
     contacts = company.contacts.all()
     return render(request, 'companies/company_detail.html', {'company': company, 'contacts': contacts})
+
+
+@login_required
+def contact_interactions(request, contact_id):
+    if request.headers.get('x-requested-with') != 'XMLHttpRequest':
+        return JsonResponse({'error': 'This endpoint requires AJAX'}, status=400)
+
+    contact = get_object_or_404(Contact, pk=contact_id)
+    interactions = Interaction.objects.filter(contact=contact).order_by('-date')
+
+    # Форматування взаємодій
+    interactions_data = [{
+        'interaction_type': interaction.get_interaction_type_display(),
+        'sender': interaction.get_sender_display(),
+        'date': interaction.date.strftime('%d.%m.%Y %H:%M'),
+        'description': interaction.description
+    } for interaction in interactions]
+
+    return JsonResponse({
+        'contact_name': f"{contact.first_name} {contact.last_name or ''}",
+        'interactions': interactions_data
+    })

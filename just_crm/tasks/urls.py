@@ -11,4 +11,5 @@ urlpatterns = [
     path('transfer/<int:task_id>/', views.transfer_task, name='transfer_task'),
     path('confirm_new/<int:contact_id>/', views.confirm_new, name='confirm_new'),
     path('get_available_slots/', views.get_available_slots, name='get_available_slots'),
+    path('detail/<int:task_id>/', views.task_detail, name='task_detail'),
 ]
