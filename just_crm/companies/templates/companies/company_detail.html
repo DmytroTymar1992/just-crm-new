@@ -198,11 +198,11 @@ document.addEventListener('DOMContentLoaded', () => {
         interactionsContent.innerHTML = '';
         interactionsTitle.textContent = 'Завантаження взаємодій...';
 
-        // AJAX-запит для отримання взаємодій
+        // AJAX-запит для отримання відрендерених взаємодій
         fetch(`/companies/${contactId}/interactions/`, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
             }
         })
         .then(response => {
@@ -213,18 +213,10 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .then(data => {
             loadingSpinner.style.display = 'none';
-            if (data.interactions && data.interactions.length > 0) {
-                interactionsTitle.textContent = `Взаємодії з ${data.contact_name}`;
-                interactionsContent.innerHTML = data.interactions.map(interaction => `
-                    <div class="interaction-item">
-                        <p><strong>Тип:</strong> ${interaction.interaction_type}</p>
-                        <p><strong>Відправник:</strong> ${interaction.sender}</p>
-                        <p><strong>Дата:</strong> ${interaction.date}</p>
-                        <p><strong>Опис:</strong> ${interaction.description || '—'}</p>
-                    </div>
-                `).join('');
+            interactionsTitle.textContent = data.contact_name;
+            if (data.html) {
+                interactionsContent.innerHTML = data.html;
             } else {
-                interactionsTitle.textContent = 'Взаємодії відсутні';
                 interactionsContent.innerHTML = '<p>Немає взаємодій для цього контакту.</p>';
             }
         })

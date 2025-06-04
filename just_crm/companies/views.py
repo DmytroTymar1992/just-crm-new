@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from django.db.models import Q
 from chats.models import Interaction
 from contacts.models import Contact
+from django.template.loader import render_to_string
 
 @login_required
 def company_list(request):
@@ -118,15 +119,10 @@ def contact_interactions(request, contact_id):
     contact = get_object_or_404(Contact, pk=contact_id)
     interactions = Interaction.objects.filter(contact=contact).order_by('-date')
 
-    # Форматування взаємодій
-    interactions_data = [{
-        'interaction_type': interaction.get_interaction_type_display(),
-        'sender': interaction.get_sender_display(),
-        'date': interaction.date.strftime('%d.%m.%Y %H:%M'),
-        'description': interaction.description
-    } for interaction in interactions]
+    # Рендеримо взаємодії за допомогою шаблону
+    html = render_to_string('chats/interaction_item.html', {'interactions': interactions}, request=request) if interactions else ''
 
     return JsonResponse({
-        'contact_name': f"{contact.first_name} {contact.last_name or ''}",
-        'interactions': interactions_data
+        'contact_name': f"{contact.first_name} {contact.last_name or ''}".strip(),
+        'html': html
     })
