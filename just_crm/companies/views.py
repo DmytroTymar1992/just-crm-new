@@ -10,6 +10,8 @@ from django.db.models import Q
 from chats.models import Interaction
 from contacts.models import Contact
 from django.template.loader import render_to_string
+from django.core.paginator import Paginator
+
 
 @login_required
 def company_list(request):
@@ -117,12 +119,27 @@ def contact_interactions(request, contact_id):
         return JsonResponse({'error': 'This endpoint requires AJAX'}, status=400)
 
     contact = get_object_or_404(Contact, pk=contact_id)
-    interactions = Interaction.objects.filter(contact=contact).order_by('-date')
+    interaction_qs = Interaction.objects.filter(contact=contact).select_related(
+        'contact', 'contact_phone', 'contact_email'
+    ).order_by('date')
 
-    # Рендеримо взаємодії за допомогою шаблону
-    html = render_to_string('chats/interaction_item.html', {'interactions': interactions}, request=request) if interactions else ''
+    paginator = Paginator(interaction_qs, 20)
+    page_number = request.GET.get('page', paginator.num_pages)  # Починаємо з останньої сторінки
+    page_obj = paginator.get_page(page_number)
+    interactions = page_obj.object_list
+
+    html = ''
+    for interaction in interactions:
+        html += render_to_string(
+            'chats/interaction_item.html',
+            {'interaction': interaction},
+            request=request
+        )
 
     return JsonResponse({
         'contact_name': f"{contact.first_name} {contact.last_name or ''}".strip(),
-        'html': html
+        'html': html,
+        'has_previous': page_obj.has_previous(),
+        'page': page_obj.number,
+        'previousScrollHeight': interactions.count() * 100  # Приблизне значення
     })

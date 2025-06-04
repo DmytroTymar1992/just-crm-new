@@ -4,7 +4,7 @@
 
 {% block content %}
 <style>
-    /* Існуючі стилі залишимо без змін, додамо нові для двоколонкового макета */
+    /* Існуючі стилі */
     .contacts-container {
         display: flex;
         gap: 2rem;
@@ -111,6 +111,32 @@
             padding: 1.5rem;
         }
     }
+
+    /* Стилі для узгодження з interaction_item.html */
+    .interaction-item .message-content {
+        display: inline-block;
+        padding: 10px;
+        border-radius: 10px;
+        background-color: #f0f0f0;
+        max-width: 70%;
+    }
+
+    .interaction-item.sent .message-content {
+        background-color: #0084ff;
+        color: #fff;
+    }
+
+    .interaction-item.received .message-content {
+        background-color: #f0f0f0;
+    }
+
+    .interaction-item.sent {
+        text-align: right;
+    }
+
+    .interaction-item.received {
+        text-align: left;
+    }
 </style>
 
 <div class="container">
@@ -168,10 +194,14 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const contactsTable = document.getElementById('contacts-table');
-    const interactionsPanel = document.getElementById('interactions-panel');
     const interactionsContent = document.getElementById('interactions-content');
     const interactionsTitle = document.getElementById('interactions-title');
     const loadingSpinner = document.getElementById('loading-spinner');
+
+    let isLoading = false;
+    let currentContactId = null;
+    let page = 1;
+    let hasPrevious = false;
 
     function showToast(message) {
         const toast = document.createElement('div');
@@ -179,6 +209,69 @@ document.addEventListener('DOMContentLoaded', () => {
         toast.textContent = message;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
+    }
+
+    function loadInteractions(contactId, pageNumber, append = false) {
+        if (isLoading) return;
+        isLoading = true;
+
+        if (!append) {
+            interactionsContent.innerHTML = '';
+            interactionsTitle.textContent = 'Завантаження взаємодій...';
+            loadingSpinner.style.display = 'block';
+        }
+
+        fetch(`/companies/${contactId}/interactions/?page=${pageNumber}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            loadingSpinner.style.display = 'none';
+            isLoading = false;
+
+            interactionsTitle.textContent = data.contact_name;
+            if (data.html) {
+                if (append) {
+                    // Додаємо старіші взаємодії зверху
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = data.html;
+                    const nodes = Array.from(tempDiv.children);
+                    for (let i = nodes.length - 1; i >= 0; i--) {
+                        interactionsContent.insertBefore(nodes[i], interactionsContent.firstChild);
+                    }
+                    // Оновлюємо позицію прокрутки
+                    const newScrollHeight = interactionsContent.scrollHeight;
+                    interactionsContent.scrollTop = newScrollHeight - interactionsContent.scrollHeight + interactionsContent.scrollTop;
+                } else {
+                    interactionsContent.innerHTML = data.html;
+                    // Прокрутка донизу після рендерингу
+                    setTimeout(() => {
+                        interactionsContent.scrollTop = interactionsContent.scrollHeight;
+                    }, 0);
+                }
+                hasPrevious = data.has_previous;
+                page = data.page;
+            } else {
+                interactionsContent.innerHTML = '<p>Немає взаємодій для цього контакту.</p>';
+                hasPrevious = false;
+            }
+        })
+        .catch(error => {
+            loadingSpinner.style.display = 'none';
+            isLoading = false;
+            interactionsTitle.textContent = 'Помилка';
+            interactionsContent.innerHTML = '<p>Не вдалося завантажити взаємодії.</p>';
+            showToast(`Помилка завантаження взаємодій: ${error.message}`);
+            console.error('Error loading interactions:', error);
+        });
     }
 
     window.selectContact = function(contactId) {
@@ -193,41 +286,27 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedRow.classList.add('active');
         }
 
-        // Показуємо спіннер
-        loadingSpinner.style.display = 'block';
-        interactionsContent.innerHTML = '';
-        interactionsTitle.textContent = 'Завантаження взаємодій...';
+        // Скидаємо пагінацію
+        currentContactId = contactId;
+        page = 1;
+        hasPrevious = false;
 
-        // AJAX-запит для отримання відрендерених взаємодій
-        fetch(`/companies/${contactId}/interactions/`, {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            loadingSpinner.style.display = 'none';
-            interactionsTitle.textContent = data.contact_name;
-            if (data.html) {
-                interactionsContent.innerHTML = data.html;
-            } else {
-                interactionsContent.innerHTML = '<p>Немає взаємодій для цього контакту.</p>';
-            }
-        })
-        .catch(error => {
-            loadingSpinner.style.display = 'none';
-            interactionsTitle.textContent = 'Помилка';
-            interactionsContent.innerHTML = '<p>Не вдалося завантажити взаємодії.</p>';
-            showToast(`Помилка завантаження взаємодій: ${error.message}`);
-            console.error('Error loading interactions:', error);
-        });
+        // Завантажуємо першу сторінку
+        loadInteractions(contactId, page);
     };
+
+    // Обробка прокрутки для завантаження старіших взаємодій
+    interactionsContent.addEventListener('scroll', () => {
+        if (isLoading || !hasPrevious || !currentContactId) return;
+
+        // Перевірка, чи прокручено майже до верху
+        if (interactionsContent.scrollTop < 50) {
+            isLoading = true;
+            const previousScrollHeight = interactionsContent.scrollHeight;
+            page -= 1; // Завантажуємо попередню сторінку
+            loadInteractions(currentContactId, page, true);
+        }
+    });
 
     // Автоматично вибираємо перший контакт, якщо він є
     const firstContactRow = contactsTable.querySelector('tr[data-contact-id]');
