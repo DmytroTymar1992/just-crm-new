@@ -9,6 +9,8 @@
         display: flex;
         gap: 2rem;
         margin-bottom: 2rem;
+        margin-top: 1rem;
+        flex-grow: 1;
     }
 
     .contacts-list {
@@ -16,8 +18,8 @@
         background: #ffffff;
         border-radius: 1rem;
         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-        max-height: 400px;
+        height: 100%;
+        min-height: 0;
         overflow-y: auto;
     }
 
@@ -27,7 +29,8 @@
         border-radius: 1rem;
         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
         padding: 2rem;
-        max-height: 400px;
+        height: 100%;
+        min-height: 0;
         overflow-y: auto;
         position: relative;
     }
@@ -302,6 +305,7 @@
     .container {
         scroll-snap-type: y mandatory;
         overflow-y: auto;
+        scroll-behavior: smooth;
         height: 100vh;
         width: 100%;
         box-sizing: border-box;
@@ -327,6 +331,8 @@
     .contacts-section {
         background: #ffffff;
         justify-content: flex-start;
+        overflow: hidden;
+        min-height: 0;
     }
 
     /* Картка компанії */
@@ -346,7 +352,9 @@
         gap: 2rem;
         width: 100%;
         margin-top: 1rem;
-        flex-grow: 1;
+        flex: 1 1 auto;
+        overflow: hidden;
+        min-height: 0;
     }
 
     .contacts-list, .interactions-panel {
@@ -355,12 +363,16 @@
         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
         overflow-y: auto;
         width: 40%;
+        height: 100%;
+        min-height: 0
     }
 
     .interactions-panel {
         width: 60%;
         padding: 2rem;
         position: relative;
+        height: 100%;
+        min-height: 0;
     }
 
     /* Адаптивність */
@@ -439,13 +451,9 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const container = document.querySelector('.container');
+
     const sections = document.querySelectorAll('.company-section, .contacts-section');
-    const contactsContainer = document.querySelector('.contacts-container');
-    const contactsList = document.querySelector('.contacts-list');
-    const interactionsPanel = document.querySelector('.interactions-panel');
-    const contactsHeader = document.querySelector('.contacts-section h2');
-    const addContactButton = document.querySelector('.contacts-section .btn-primary');
+
 
     // Плавний скрол між секціями
     sections.forEach(section => {
@@ -456,31 +464,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Динамічне встановлення висоти contacts-container
-    function setContactsHeight() {
-        const windowHeight = window.innerHeight;
-        const headerRect = contactsHeader.getBoundingClientRect();
-        const buttonRect = addContactButton.getBoundingClientRect();
-        const sectionPadding = 2 * 16; // 2rem padding у пікселях (припускаємо 1rem = 16px)
-        const marginTop = 16; // margin-top: 1rem для contacts-container
-
-        // Висота заголовка + кнопки + відступи
-        const headerAndButtonHeight = headerRect.height + buttonRect.height + marginTop + sectionPadding;
-
-        // Встановлюємо висоту contacts-container
-        const availableHeight = windowHeight - headerAndButtonHeight;
-        contactsContainer.style.height = `${availableHeight}px`;
-
-        // Встановлюємо висоту contacts-list і interactions-panel
-        contactsList.style.height = `${availableHeight}px`;
-        interactionsPanel.style.height = `${availableHeight}px`;
-    }
-
-    // Викликаємо при завантаженні
-    setContactsHeight();
-
-    // Оновлюємо при зміні розміру вікна
-    window.addEventListener('resize', setContactsHeight);
 });
 </script>
 <script>

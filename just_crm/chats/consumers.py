@@ -72,7 +72,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         print(f"WebSocket sending open_call_result_modal for call {event['call_id']}")
         await self.send(text_data=json.dumps({
             'type': 'open_call_result_modal',
-            'call_id': event['call_id']
+            'call_id': event['call_id'],
+            'description': event.get('description', '')
         }))
         print(f"WebSocket sent open_call_result_modal for call ID {event['call_id']}")
 

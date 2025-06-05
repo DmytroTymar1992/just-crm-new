@@ -16,6 +16,7 @@ from chats.models import Chat, Interaction
 from companies.models import Company
 from django.contrib.auth.decorators import login_required
 import logging
+from .tasks import transcribe_call
 
 
 logger = logging.getLogger(__name__)
@@ -283,17 +284,21 @@ def phonet_hangup_webhook(request):
             )
 
             # Перевіряємо answer_time після оновлення
-            if call.answer_time:
-                logger.info(f"Opening call result modal for call ID: {call.id}")
-                async_to_sync(channel_layer.group_send)(
-                    f'chat_{call.interaction.chat_id}',
-                    {
-                        'type': 'open_call_result_modal',
-                        'call_id': call.id
-                    }
-                )
-            else:
-                logger.info(f"Modal not opened for call UUID: {uuid}, answer_time is None")
+            #if call.answer_time:
+            #    logger.info(f"Opening call result modal for call ID: {call.id}")
+            #    async_to_sync(channel_layer.group_send)(
+            #        f'chat_{call.interaction.chat_id}',
+            #        {
+            #            'type': 'open_call_result_modal',
+            #            'call_id': call.id
+            #        }
+            #    )
+            #else:
+            #    logger.info(f"Modal not opened for call UUID: {uuid}, answer_time is None")
+
+            if recording_link:
+                logger.debug(f"Scheduling transcription task for call ID {call.id}")
+                transcribe_call.delay(call.id, recording_link)
 
             logger.info(f"Updated call with UUID {uuid} for hangup event")
             return JsonResponse({'status': 'success'}, status=200)
