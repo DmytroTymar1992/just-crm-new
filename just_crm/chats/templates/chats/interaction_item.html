@@ -77,7 +77,7 @@
                 </audio>
             {% endif %}
             {% if interaction.calls.first.answer_time %}
-                <button onclick="openCallResultModal({{ interaction.calls.first.id }})" class="btn btn-primary">
+                <button onclick="openCallResultModal({{ interaction.calls.first.id }}, '{{ interaction.calls.first.description|escapejs }}')" class="btn btn-primary">
                     Оновити результат
                 </button>
             {% endif %}

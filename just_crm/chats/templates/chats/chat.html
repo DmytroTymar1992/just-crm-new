@@ -550,7 +550,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } else if (data.type === 'open_call_result_modal' && data.call_id) {
                 console.log('Opening call result modal for call ID:', data.call_id);
-                openCallResultModal(data.call_id);
+                openCallResultModal(data.call_id, data.description);
             }
         };
 
@@ -670,8 +670,9 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Function to open modal with call ID
-function openCallResultModal(callId) {
+function openCallResultModal(callId, description = '') {
     document.getElementById('callId').value = callId;
+    document.getElementById('callDescription').value = description || '';
     $('#callResultModal').modal('show');
 }
     </script>
