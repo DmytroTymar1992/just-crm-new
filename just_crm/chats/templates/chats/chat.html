@@ -672,8 +672,23 @@ document.addEventListener('DOMContentLoaded', function() {
 // Function to open modal with call ID
 function openCallResultModal(callId, description = '') {
     document.getElementById('callId').value = callId;
-    document.getElementById('callDescription').value = description || '';
-    $('#callResultModal').modal('show');
+    if (description) {
+        document.getElementById('callDescription').value = description;
+        $('#callResultModal').modal('show');
+    } else {
+        fetch(`/calls/details/${callId}/`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('callDescription').value = data.description || '';
+                document.getElementById('callResult').value = data.result || '';
+                $('#callResultModal').modal('show');
+            })
+            .catch(error => {
+                console.error('Помилка отримання опису дзвінка:', error);
+                document.getElementById('callDescription').value = '';
+                $('#callResultModal').modal('show');
+            });
+    }
 }
     </script>
 

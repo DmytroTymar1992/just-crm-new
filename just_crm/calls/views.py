@@ -1,6 +1,6 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
 from django.conf import settings
 from django.utils import timezone
 from django.db import transaction
@@ -88,6 +88,23 @@ def _get_sender_and_user_names(data, user):
         user_last_name = ''
         user_first_name = ''
     return sender, user_first_name, user_last_name
+
+@login_required
+@require_GET
+def get_call_details(request, call_id):
+    """Return JSON with call description and result."""
+    try:
+        call = Call.objects.get(id=call_id)
+        return JsonResponse({
+            'status': 'success',
+            'description': call.description or '',
+            'result': call.result or ''
+        })
+    except Call.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Call not found'
+        }, status=404)
 
 @csrf_exempt
 @require_POST

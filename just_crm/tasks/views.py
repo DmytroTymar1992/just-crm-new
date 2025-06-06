@@ -15,6 +15,7 @@ import logging
 import json
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
+from ai_helper.models import AiSuggestion
 
 
 # Налаштування логування
@@ -181,7 +182,18 @@ def create_task_in_chat(request, chat_id):
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({'error': 'Некоректні дані форми', 'errors': form.errors.as_json()}, status=400)
             messages.error(request, 'Некоректні дані форми')
-    form = TaskForm(user=request.user)
+    initial = {}
+    if request.GET.get("prefill") == "1":
+        try:
+            s = AiSuggestion.objects.get(chat_id=chat_id)
+            initial = {
+                "task_type": {"Дзвінок": "call", "лист": "email", "повідомлення": "message"}[s.type],
+                "target": s.goal,
+                "description": s.short_description,
+            }
+        except AiSuggestion.DoesNotExist:
+            pass
+    form = TaskForm(user=request.user, initial=initial)
     context = {
         'form': form,
         'chat': chat,

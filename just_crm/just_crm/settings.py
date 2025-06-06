@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'sales_telegram.apps.SalesTelegramConfig',
     'vacancies',
     'parser',
+    "ai_helper.apps.AiHelperConfig",
 
     'channels',
     'rest_framework',
@@ -265,3 +266,7 @@ CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/0'
 CELERY_TIMEZONE = TIME_ZONE          # вже є UTC
 
 DEEPGRAM_API_KEY = "b46dbd746e24c47d42231e3ad9589a7483aaa42a"
+
+OPENAI_API_KEY = "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"                          # ваш ключ
+OPENAI_MODEL    = "gpt-4o-mini"                  # або fine-tuned ID
+OPENAI_TIMEOUT  = 45                             # сек.

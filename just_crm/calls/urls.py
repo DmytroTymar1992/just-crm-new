@@ -6,5 +6,6 @@ urlpatterns = [
     path('webhook/call/bridge/', views.phonet_bridge_webhook, name='phonet_bridge_webhook'),
     path('webhook/call/hangup/', views.phonet_hangup_webhook, name='phonet_hangup_webhook'),
     path('update-result/', views.update_call_result, name='update_call_result'),
+    path('details/<int:call_id>/', views.get_call_details, name='get_call_details'),
 
 ]
