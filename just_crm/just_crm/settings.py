@@ -269,6 +269,6 @@ CELERY_TIMEZONE = TIME_ZONE          # вже є UTC
 
 DEEPGRAM_API_KEY = "b46dbd746e24c47d42231e3ad9589a7483aaa42a"
 
-OPENAI_API_KEY = "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"
+
 OPENAI_MODEL    = "gpt-4.1-mini"                  # або fine-tuned ID
 OPENAI_TIMEOUT  = 45                             # сек.
