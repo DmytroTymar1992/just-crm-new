@@ -1,25 +1,32 @@
-<div class="modal fade" id="callResultModal" tabindex="-1" aria-labelledby="callResultModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="callResultModalLabel">Оновити результат дзвінка</h5>
-                <p id="callContactInfo" class="mb-0 text-muted"></p>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div id="callResultModal" class="custom-modal hidden">
+    <div class="custom-modal-dialog">
+        <div class="custom-modal-content">
+            <div class="custom-modal-header">
+                <h5>Оновити результат дзвінка</h5>
+                <button onclick="closeModal()" class="custom-modal-close">×</button>
             </div>
-            <div class="modal-body">
+            <div class="custom-modal-body">
+                <div id="callResultLoading" class="loading-overlay hidden">
+                    <div class="spinner"></div>
+                </div>
                 <form id="callResultForm">
+
                     <input type="hidden" id="callId">
-                    <div class="mb-3">
-                        <label for="callResult" class="form-label">Результат дзвінка</label>
-                        <textarea class="form-control" id="callResult" rows="4"></textarea>
+                    <div>
+                        <label for="callResult">Результат дзвінка</label>
+                        <input id="callResult"
+                               type="text"
+                               maxlength="100"
+                               placeholder="Напр., Клієнт подумає" />
                     </div>
-                    <div class="mb-3">
-                        <label for="callDescription" class="form-label">Опис</label>
-                        <textarea class="form-control" id="callDescription" rows="4"></textarea>
+                    <div>
+                        <label for="callDescription">Опис</label>
+                        <textarea id="callDescription"></textarea>
                     </div>
-                    <button type="submit" class="btn btn-primary">Зберегти</button>
+                    <button type="submit">Зберегти</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
+

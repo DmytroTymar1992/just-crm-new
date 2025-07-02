@@ -1,0 +1,221 @@
+/* Modal container */
+.custom-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+
+
+/* Show modal */
+.custom-modal:not(.hidden) {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Modal dialog */
+.custom-modal-dialog {
+  max-width: 500px;
+  width: 90%;
+  transform: scale(0.7);
+  transition: transform 0.3s ease;
+}
+
+/* Scale up when modal is visible */
+.custom-modal:not(.hidden) .custom-modal-dialog {
+  transform: scale(1);
+}
+
+/* Modal content */
+.custom-modal-content {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+/* Modal header */
+.custom-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.custom-modal-header h5 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #343a40;
+}
+
+/* Close button */
+.custom-modal-close {
+  background: none;
+  border: none;
+  font-size: 2.5rem;
+  color: #6c757d;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+@keyframes rotateAndColor {
+  0% {
+    transform: rotate(0deg);
+    color: #6c757d;
+  }
+
+  100% {
+    transform: rotate(90deg);
+    color: red;
+  }
+}
+
+.custom-modal-close:hover {
+  animation: rotateAndColor 0.6s ease-in-out forwards;
+}
+
+/* Modal body */
+.custom-modal-body {
+  padding: 24px;
+  position: relative;
+}
+
+/* Form styling */
+#callResultForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+#callResultForm div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#callResultForm label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #495057;
+}
+
+#callResult{
+  box-sizing: border-box;
+  width: 100%;
+  height: 35px;
+  padding: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 1rem;
+  resize: vertical;
+  transition: border-color 0.2s ease;
+}
+
+#callDescription {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 200px;
+  max-height: 400px;
+  padding: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 1rem;
+  resize: none;
+  transition: border-color 0.2s ease;
+
+  overflow-y: scroll; /* ✅ залишаємо прокрутку */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Chrome, Safari, Edge — сховати скролбар */
+#callDescription::-webkit-scrollbar {
+  display: none;
+}
+
+#callResultForm textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+}
+
+#callResult:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+}
+
+/* Submit button */
+#callResultForm button[type="submit"] {
+  align-self: flex-end;
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: #ffffff;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+#callResultForm button[type="submit"]:hover {
+  background-color: #0056b3;
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+  .custom-modal-dialog {
+    width: 95%;
+  }
+
+  .custom-modal-header {
+    padding: 12px 16px;
+  }
+
+  .custom-modal-body {
+    padding: 16px;
+  }
+}
+
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: rgba(255,255,255,0.8);
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: all;
+}
+
+.loading-overlay.hidden {
+    display: none;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #ccc;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

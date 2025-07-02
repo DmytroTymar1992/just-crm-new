@@ -1,53 +1,140 @@
 {% extends 'sales/base.html' %}
+{% load telegram_date %}
+{% load static %}
 
+{% block title %}Чат {{ company.name }}{% endblock %}
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="{% static 'chats/css/interaction_item.css' %}">
+<link rel="stylesheet" href="{% static 'chats/css/chats.css' %}">
+<link rel="stylesheet" href="{% static 'chats/css/call_result_modal.css' %}">
+{% endblock %}
 {% block content %}
 <div class="chat-container">
     <!-- Ліва частина: список чатів -->
     <div class="chat-sidebar">
         <h3><a href="{% url 'chat_list' %}">Чати</a></h3>
-        <ul class="chat-list" id="chat-list">
-            {% for chat in chats %}
-            <li class="{% if chat == selected_chat %}active{% endif %}" data-chat-id="{{ chat.id }}">
-                <a href="{% url 'chat_detail' chat.id %}">
-                    <div class="chat-item">
-                        {% if chat.contact.avatar %}
-                            <img src="{{ chat.contact.avatar.url }}" alt="{{ chat.contact.first_name }}" class="avatar">
-                        {% else %}
-                            <div class="avatar-placeholder">{{ chat.contact.first_name|slice:":1" }}</div>
-                        {% endif %}
-                        <div class="chat-info">
-                            <strong>{{ chat.contact.first_name }} {{ chat.contact.last_name }}</strong>
-                            <p>{{ chat.contact.company.name }}</p>
-                        </div>
-                    </div>
-                </a>
-            </li>
-            {% empty %}
-            <li>Немає чатів</li>
-            {% endfor %}
-        </ul>
+        {% include 'partials/chat_item.html' with interaction=interaction %}
     </div>
 
     <!-- Центральна частина: чат -->
     <div class="chat-main">
         {% if selected_chat %}
         <div class="chat-header">
-            <h4>{{ selected_chat.contact.first_name }} {{ selected_chat.contact.last_name }}</h4>
-            <button id="createTaskBtn">Створити задачу</button>
-            <p>{{ selected_chat.contact.company.name }}</p>
+            <div class="information-area">
+                <a href="{% url 'contact_detail' pk=selected_chat.contact.id %}">
+                    <h4>{{ selected_chat.contact.first_name }}</h4>
+                </a>
+                {% if  selected_chat.contact.company %}
+                <a href="{% url 'company_detail' pk=selected_chat.contact.company.id %}" >
+                    <p>{{ selected_chat.contact.company.name }}</p>
+                </a>
+                {% else %}
+                {% endif %}
+            </div>
+            <div class="working-area">
+                {% if selected_task %}
+
+                {% else %}
+                    <button id="createTaskBtn">Створити задачу</button>
+                {% endif %}
+                <a class="call" id="callLink" href="#">
+                    <div class="call-icon">
+                        <img src="{% static 'chats/images/call.svg' %}" alt="Call">
+                    </div>
+                    <div class="call-info">
+                        <div class="call-phone-name" id="selectedPhoneName"></div>
+                        <div class="call-phone-number" id="selectedPhoneDisplay"></div>
+                    </div>
+                </a>
+            </div>
         </div>
-        <div class="chat-messages" id="chat-messages">
-            {% for interaction in interactions %}
+
+        <div class="chat-messages custom-scroll" id="chat-messages"
+             data-chat-id="{{ selected_chat.id|default:'null' }}"
+             data-page="{{ page_obj.number|default:1 }}"
+             data-has-previous="{{ page_obj.has_previous|yesno:'true,false' }}">
+            {% if selected_task %}
+                <div class="task-info {{ selected_task_status }}">
+                    <div class="task-details">
+                        <div class="task-icon">
+                            {% if selected_task.task_type == "call" %}
+                                <img src="{% static 'chats/images/call.svg' %}" alt="Call">
+                            {% elif selected_task.task_type == "email" %}
+                                <img src="{% static 'chats/images/email.svg' %}" alt="Email">
+                            {% elif selected_task.task_type == "message" %}
+                                <img src="{% static 'chats/images/message.svg' %}" alt="Message">
+                            {% endif %}
+                            <p class="task-target">{{ selected_task.target }}</p>
+                        </div>
+                        <p class="task-date">{{ selected_task.task_date|date:"j M, H:i" }}</p>
+                    </div>
+                </div>
+            {% else %}
+            {% endif %}
+            {% if grouped_interactions %}
+            {% for day, msgs in grouped_interactions %}
+              <div class="date-separator">
+                {{ day|telegram_date }}
+              </div>
+              {% for interaction in msgs %}
                 {% include 'chats/interaction_item.html' with interaction=interaction %}
-            {% empty %}
-                <p>Немає повідомлень</p>
+              {% endfor %}
             {% endfor %}
+          {% else %}
+            <p>Немає повідомлень</p>
+          {% endif %}
         </div>
         <form id="sendForm" class="message-form">
             {% csrf_token %}
-            <textarea id="msgInput" rows="2" placeholder="Напишіть повідомлення…"></textarea>
-            <button type="submit" name="send_viber">Send to Viber</button>
-            <button type="submit" name="send_telegram">Send to Telegram</button>
+            {% if contact_phones|length > 1 %}
+                <div class="phone-options">
+                    <div class="phone-options-group">
+                        {% for phone in contact_phones %}
+                            <label class="phone-option">
+                                <input type="radio"
+                                       name="selected_phone"
+                                       value="{{ phone.phone }}"
+                                       data-name="{{ phone.name }}"
+                                       {% if forloop.first %}checked{% endif %}>
+                                <span>
+                                  <strong class="phone-name">{{ phone.name }}</strong>
+                                  <small class="phone-number">{{ phone.phone }}</small>
+                                </span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% elif contact_phones|length == 1 %}
+                <input type="hidden"
+                       id="singlePhoneInput"
+                       name="selected_phone"
+                       value="{{ contact_phones.0.phone }}"
+                       data-name="{{ contact_phones.0.name }}">
+            {% endif %}
+            <!-- Перемикач каналу -->
+            <div class="channel-switch telegram" id="toggleChannel">
+                <span id="currentChannel">Telegram</span>
+            </div>
+            <!-- Поле + кнопка-відправка -->
+            <div class="input-wrapper">
+                <!--
+                <div class="mirror-container">
+                    <div id="textMirror"></div><span id="suggestionText"></span>
+                </div>
+
+                <textarea id="msgSuggestion" class="suggestion-overlay" disabled></textarea>
+                -->
+                <textarea id="msgInput" placeholder="Напишіть повідомлення…"></textarea>
+                <button type="submit" id="sendBtn" name="send_telegram"
+                        data-icon-telegram="{% static 'chats/images/telegram-send.svg' %}"
+                        data-icon-viber="{% static 'chats/images/viber-send.svg' %}">
+                  <img id="sendIcon" src="{% static 'chats/images/telegram-send.svg' %}" alt="Send">
+                </button>
+            </div>
         </form>
         {% else %}
         <p>Виберіть чат, щоб розпочати спілкування</p>
@@ -57,165 +144,21 @@
 
     <!-- Права частина: порожній блок -->
     <div class="chat-info-sidebar">
-        <h3>Інформація</h3>
-        <p>Тут буде додаткова інформація</p>
+        <div class="vacancies-header">
+            <h3>Work.ua</h3>
+        </div>
+        <div class="vacancies custom-scroll">
+            <div id="vacanciesContainer">
+                <p>Завантаження вакансій...</p>
+            </div>
+        </div>
     </div>
 
-<div id="modalContainer"></div>
+<div id="modalContainer">
 {% include 'calls/call_result_modal.html' %}
 </div>
 
-<style>
-.chat-container {
-    display: flex;
-    height: 100vh;
-    max-width: 1200px;
-    margin: 0 auto;
-}
 
-.chat-sidebar {
-    width: 25%;
-    border-right: 1px solid #ddd;
-    padding: 10px;
-    overflow-y: auto;
-}
-
-.chat-list {
-    list-style: none;
-    padding: 0;
-}
-
-.chat-item {
-    display: flex;
-    align-items: center;
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-}
-
-.chat-item:hover, .chat-list li.active {
-    background-color: #f5f5f5;
-}
-
-.avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 5px;
-    margin-right: 10px;
-}
-
-.avatar-placeholder {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: #ccc;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 10px;
-    color: #fff;
-}
-
-.chat-info {
-    flex: 1;
-}
-
-.chat-main {
-    width: 50%;
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid #ddd;
-}
-
-.chat-header {
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
-}
-
-.chat-messages {
-    flex: 1;
-    padding: 10px;
-    overflow-y: auto;
-}
-
-.message {
-    margin-bottom: 15px;
-}
-
-.message.sent {
-    text-align: right;
-}
-
-.message.received {
-    text-align: left;
-}
-
-.message-content {
-    display: inline-block;
-    padding: 10px;
-    border-radius: 10px;
-    background-color: #f0f0f0;
-    max-width: 70%;
-}
-
-.message.sent .message-content {
-    background-color: #0084ff;
-    color: #fff;
-}
-
-.message-form {
-    display: flex;
-    padding: 10px;
-    border-top: 1px solid #ddd;
-}
-
-.message-form textarea {
-    flex: 1;
-    resize: none;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-}
-
-.message-form button {
-    margin-left: 10px;
-    padding: 10px 20px;
-    background-color: #0084ff;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-}
-
-.chat-info-sidebar {
-    width: 25%;
-    padding: 10px;
-}
-
-/* Стиль для зайнятих слотів часу */
-.busy-slot {
-    color: red;
-}
-
-.toast-message {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background-color: #333;
-    color: #fff;
-    padding: 10px 20px;
-    border-radius: 5px;
-    opacity: 0.9;
-    z-index: 10000;
-}
-
-.error-input {
-    box-shadow: 0 0 5px 2px red !important;
-    animation: blink 0.5s step-end infinite !important;
-}
-
-@keyframes blink {
-    50% { box-shadow: 0 0 5px 2px transparent !important; }
-}
-</style>
 {% if selected_chat.id %}
 <script>
     // Константи для чату
@@ -226,78 +169,35 @@
     const chatId = {{ selected_chat.id|default:"null" }}; // ID чату
     const viberSendUrl = chatId ? "{% url 'chat-send-message' selected_chat.id %}" : null; // URL для відправки в Viber
     const telegramSendUrl = chatId ? "{% url 'chat-send-message-telegram' selected_chat.id %}" : null; // URL для відправки в Telegram
-    const ukrainianNames = [
-        'Олександр', 'Олена', 'Андрій', 'Юлія', 'Іван', 'Наталія', 'Максим', 'Анна',
-        'Дмитро', 'Катерина', 'Сергій', 'Марія', 'Володимир', 'Тетяна', 'Михайло', 'Софія',
-        'Віктор', 'Ірина', 'Олег', 'Анастасія', 'Павло', 'Оксана', 'Роман', 'Вікторія',
-        'Ярослав', 'Христина', 'Євген', 'Дарія', 'Богдан', 'Людмила', 'Артем', 'Аліна',
-        'Єлизавета' // Додано для прикладу
-    ]; // Словник українських імен
 </script>
 {% endif %}
-
+<script src="{% static 'main/js/scroll.js' %}"></script>
+<script src="{% static 'chats/js/paginator-chat.js' %}"></script>
+<script src="{% static 'chats/js/message_form.js' %}"></script>
+<script src="{% static 'main/js/ukrainian_names.js' %}"></script>
+<script src="{% static 'chats/js/vacancies-list.js' %}"></script>
+<script src="{% static 'chats/js/phone-selection.js' %}"></script>
+<script src="{% static 'chats/js/chat_input_commands.js' %}"></script>
+<script src="{% static 'chats/js/send-message.js' %}"></script>
+<script src="{% static 'chats/js/task_modal.js' %}"></script>
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    const msgInput = document.getElementById('msgInput');
-
-    if (!chatId || !msgInput) return; // Перевірка наявності чату та поля
-
-    // Обробка введення тексту
-    msgInput.addEventListener('input', (e) => {
-        const text = e.target.value.trim().toLowerCase();
-
-        // Скидаємо стилі помилки, якщо текст не "прив."
-        if (msgInput.classList.contains('error-input') && text !== 'прив.') {
-            msgInput.classList.remove('error-input');
-            console.log('Removed error-input class due to text change');
-        }
-
-        if (text === 'пос.') {
-            msgInput.classList.remove('error-input'); // Очищаємо помилку
-            if (referralLink) {
-                e.target.value = referralLink; // Заміна "пос." на referral_link
-            } else {
-                showToast('Посилання для контакту відсутнє');
-            }
-        } else if (text === 'прив.') {
-            if (!welcomeMessage) {
-                showToast('Привітальне повідомлення не налаштовано');
-                return;
-            }
-            if (!referralLink) {
-                showToast('Посилання для контакту відсутнє');
-                return;
-            }
-            if (!userPhone) {
-                showToast('Номер телефону користувача не налаштовано');
-                return;
-            }
-
-            // Перевірка імені контакту
-            const nameWords = contactName.trim().split(/\s+/); // Розбиваємо на слова
-            const validName = nameWords.find(word =>
-                ukrainianNames.some(name => name.toLowerCase() === word.trim().toLowerCase())
-            ); // Знаходимо перше ім’я, яке є в словнику
-            const isValidName = !!validName; // Чи знайдено валідне ім’я
-
-            let finalMessage = welcomeMessage
-                .replace('{link}', referralLink)
-                .replace('{phone}', userPhone)
-                .replace('{contact_name}', isValidName ? validName : '');
-
-            e.target.value = finalMessage;
-
-            if (!isValidName && contactName) {
-                msgInput.classList.add('error-input');
-                showToast('Ім’я контакту некоректне');
-                console.log('Applied error-input class. contactName:', contactName, 'isValidName:', isValidName, 'nameWords:', nameWords, 'validName:', validName);
-            } else {
-                console.log('No error-input applied. contactName:', contactName, 'isValidName:', isValidName, 'validName:', validName);
+// Отримання CSRF токена
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
             }
         }
-    });
-});
+        return cookieValue;
+    }
 </script>
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -390,55 +290,81 @@ $(document).on('change', '#id_to_date', function() {
     }
 });
 </script>
+
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  if (!chatId || (!viberSendUrl && !telegramSendUrl)) return; // немає вибраного чату або URL
+document.addEventListener('DOMContentLoaded', function () {
+    const chatId = {{ selected_chat.id|default:"null" }};
+    if (chatId) {
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        const wsUrl = `${wsProtocol}${window.location.host}/ws/chats/${chatId}/`;
+        console.log('WebSocket Chat URL:', wsUrl);
 
-  const form = document.getElementById('sendForm');
-  if (!form) return; // форми немає
-  const input = document.getElementById('msgInput');
+        const socket = new WebSocket(wsUrl);
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const text = input.value.trim();
-    if (!text) return;
+        socket.onopen = function () {
+            console.log('WebSocket chat connected');
+        };
 
-    // Визначаємо, на яку кнопку натиснули
-    const buttonName = e.submitter.name;
-    const sendUrl = buttonName === 'send_viber' ? viberSendUrl : telegramSendUrl;
+        socket.onmessage = function (event) {
+            console.log('WebSocket chat message received:', event.data);
+            const data = JSON.parse(event.data);
 
-    if (!sendUrl) {
-      showToast('Немає URL для відправки повідомлення');
-      return;
+            if (data.type === 'update_chats') {
+                const now = Date.now();
+                const delay = now - lastMarkReadTime < 300 ? 300 : 0;
+
+                setTimeout(() => {
+                    const chatList = document.getElementById('chat-list');
+                    const selectedChatId = chatList?.querySelector('li.active')?.getAttribute('data-chat-id') || null;
+
+                    fetch(`/chats/list-html/?selected_chat_id=${selectedChatId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            chatList.innerHTML = data.html;
+                        })
+                        .catch(error => {
+                            console.error('Error loading updated chat list:', error);
+                        });
+                }, delay);
+
+            } else if (data.type === 'update_interaction' && data.interaction_id && data.html) {
+                const messages = document.getElementById('chat-messages');
+                const existingMessage = document.querySelector(`.message[data-interaction-id="${data.interaction_id}"]`);
+                if (existingMessage) {
+                    existingMessage.outerHTML = data.html;
+                } else {
+                    messages.insertAdjacentHTML('beforeend', data.html);
+                    messages.scrollTop = messages.scrollHeight;
+                }
+                if (typeof observeUnreadMessages === 'function') {
+                    observeUnreadMessages();
+                }
+            } else if (data.type === 'open_call_result_modal' && data.call_id) {
+
+                console.log('Opening call result modal for call ID:', data.call_id);
+                if (data.loading === true) {
+                    openCallResultModal(data.call_id, '', '', true);
+                } else {
+                    openCallResultModal(data.call_id, data.description, data.result, false);
+                }
+            }
+        };
+
+        socket.onclose = function (event) {
+            console.log('WebSocket chat closed:', event);
+        };
+
+        socket.onerror = function (error) {
+            console.error('WebSocket chat error:', error);
+            console.log('WebSocket URL:', wsUrl);
+            console.log('WebSocket readyState:', socket.readyState);
+        };
     }
-
-    try {
-      const resp = await fetch(sendUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        },
-        body: JSON.stringify({ text })
-      });
-
-      if (!resp.ok) {
-        console.error('Failed to send message:', resp.status, await resp.text());
-        showToast(`Помилка відправки до ${buttonName === 'send_viber' ? 'Viber' : 'Telegram'} (HTTP ${resp.status})`);
-      } else {
-        input.value = ''; // Очищаємо поле після успішної відправки
-      }
-      // WebSocket додасть повідомлення через update_interaction
-    } catch (error) {
-      console.error(`Error sending message to ${buttonName === 'send_viber' ? 'Viber' : 'Telegram'}:`, error);
-      showToast(`Помилка відправки повідомлення до ${buttonName === 'send_viber' ? 'Viber' : 'Telegram'}: ${error.message}`);
-    }
-  });
 });
+
 </script>
 
-
-
+<!--
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const chatId = {{ selected_chat.id|default:"null" }};
@@ -564,9 +490,20 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('WebSocket readyState:', socket.readyState);
         };
     }
+    function typeEffect(el, text, delay = 40) {
+        el.value = '';
+        let i = 0;
+        (function type() {
+            if (i < text.length) {
+                el.value += text.charAt(i);
+                i++;
+                setTimeout(type, delay);
+            }
+        })();
+    }
 
     document.getElementById('createTaskBtn').addEventListener('click', function() {
-        fetch('/tasks/create/{{ selected_chat.id }}/')
+        fetch('/tasks/create/{{ selected_chat.id }}/?prefill=1')
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Failed to fetch modal content');
@@ -581,6 +518,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 modal.style.display = 'flex';
+
+                const dataEl = modal.querySelector('#suggestion-json');
+                if (dataEl) {
+                    try {
+                        const data = JSON.parse(dataEl.textContent);
+                        const typeField = modal.querySelector('#id_task_type');
+                        const targetField = modal.querySelector('#id_target');
+                        const descField = modal.querySelector('#id_description');
+                        if (typeField && data.task_type) typeField.value = data.task_type;
+                        if (targetField && data.target) typeEffect(targetField, data.target);
+                        if (descField && data.description) typeEffect(descField, data.description);
+                    } catch(e) {
+                        console.error('Failed to apply AI suggestion:', e);
+                    }
+                }
 
                 const closeButton = modal.querySelector('.close');
                 if (closeButton) {
@@ -613,11 +565,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
+-->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('callResultForm');
 
-    form.addEventListener('submit', function(e) {
+    form.addEventListener('submit', function (e) {
         e.preventDefault();
 
         const callId = document.getElementById('callId').value;
@@ -639,9 +592,8 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                $('#callResultModal').modal('hide');
+                closeModal();
                 form.reset();
-                // Optional: Refresh table or update UI
                 showToast('Результат дзвінка успішно оновлено');
             } else {
                 showToast('Помилка: ' + data.message);
@@ -652,7 +604,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Function to get CSRF token
+    // Отримання CSRF токена
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -669,83 +621,277 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Function to open modal with call ID
-function openCallResultModal(callId, description = '') {
+function autoResizeTextarea(textarea) {
+    textarea.style.height = 'auto'; // скидаємо попередню висоту
+    textarea.style.height = Math.min(textarea.scrollHeight, 400) + 'px'; // максимум 400px
+}
+
+function typeTextInTextarea(text, textareaId, speed = 50) {
+    const textarea = document.getElementById(textareaId);
+    textarea.value = '';
+    textarea.disabled = true;  // 🔒 блокуємо на час друку
+    let index = 0;
+
+    const interval = setInterval(() => {
+        if (index < text.length) {
+            textarea.value += text[index];
+            autoResizeTextarea(textarea);
+            index++;
+        } else {
+            clearInterval(interval);
+            textarea.disabled = false;  // 🔓 розблоковуємо
+        }
+    }, speed);
+}
+
+function typeTextInInput(text, inputId, speed = 50) {
+    const input = document.getElementById(inputId);
+    input.value = '';
+    input.disabled = true;
+    let index = 0;
+
+    const interval = setInterval(() => {
+        if (index < text.length) {
+            input.value += text[index];
+            index++;
+        } else {
+            clearInterval(interval);
+            input.disabled = false;
+        }
+    }, speed);
+}
+
+function toggleCallLoadingOverlay(show = false) {
+    const el = document.getElementById('callResultLoading');
+    if (el) {
+        el.classList.toggle('hidden', !show);
+    }
+}
+
+// Відкриття модалки
+function openCallResultModal(callId, description = '', result = '', loading = false) {
     document.getElementById('callId').value = callId;
-    if (description) {
-        document.getElementById('callDescription').value = description;
-        $('#callResultModal').modal('show');
+    const hasDescription = description && description.trim().length > 0;
+    const hasResult = result && result.trim().length > 0;
+
+    if (loading) {
+        toggleCallLoadingOverlay(true);
+        showModal();
+        return;  // ❗ не продовжуємо далі
+    }
+    toggleCallLoadingOverlay(false);
+    if (hasDescription && hasResult) {
+        toggleCallLoadingOverlay(false);
+        typeTextInTextarea(description, 'callDescription', 5);
+        typeTextInInput(result, 'callResult', 50);
+        showModal();
     } else {
+        // підтягуємо з бекенду обидва поля
         fetch(`/calls/details/${callId}/`)
             .then(response => response.json())
             .then(data => {
-                document.getElementById('callDescription').value = data.description || '';
-                document.getElementById('callResult').value = data.result || '';
-                $('#callResultModal').modal('show');
+                toggleCallLoadingOverlay(false);
+                typeTextInTextarea(data.description || '', 'callDescription', 5);
+                typeTextInInput(data.result || '', 'callResult', 50);
+                showModal();
             })
             .catch(error => {
                 console.error('Помилка отримання опису дзвінка:', error);
-                document.getElementById('callDescription').value = '';
-                $('#callResultModal').modal('show');
+                toggleCallLoadingOverlay(false);
+                typeTextInTextarea('', 'callDescription', 5);
+                typeTextInInput('', 'callResult', 50);
+                showModal();
             });
     }
 }
-    </script>
 
+// Показати модалку
+function showModal() {
+    document.getElementById('callResultModal').classList.remove('hidden');
+}
+
+// Закрити модалку
+function closeModal() {
+    document.getElementById('callResultModal').classList.add('hidden');
+}
+</script>
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    const chatMessages = document.getElementById('chat-messages');
-    const chatId = {{ selected_chat.id|default:"null" }};
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
 
-    if (chatMessages && chatId) {
-        // Прокрутка донизу при завантаженні
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+let lastMarkReadTime = 0;
 
-        // Обробка прокрутки до верху для завантаження старіших взаємодій
-        let isLoading = false;
-        let page = {{ page_obj.number|default:1 }};
-        let hasPrevious = {{ page_obj.has_previous|yesno:"true,false" }};
+function observeUnreadMessages() {
+    document.querySelectorAll('.message.unread').forEach(msg => {
+        if (!msg.dataset.observed) {
+            window.interactionObserver.observe(msg);
+            msg.dataset.observed = 'true';
+        }
+    });
+}
 
-        chatMessages.addEventListener('scroll', () => {
-            if (isLoading || !hasPrevious) return;
+document.addEventListener('DOMContentLoaded', function () {
+    window.interactionObserver = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const el = entry.target;
+                const isRead = el.dataset.isRead === 'true';
+                const id = el.dataset.interactionId;
 
-            // Перевірка, чи прокручено майже до верху
-            if (chatMessages.scrollTop < 50) {
-                isLoading = true;
-                const previousScrollHeight = chatMessages.scrollHeight; // Зберігаємо висоту до запиту
-                page -= 1; // Завантажуємо попередню сторінку
+                if (!isRead && id) {
+                    lastMarkReadTime = Date.now();
 
-                fetch(`/chats/${chatId}/?page=${page}`, {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.html) {
-                        // Додаємо старіші повідомлення нагорі
-                        const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = data.html;
-                        const nodes = Array.from(tempDiv.children);
-                        for (let i = nodes.length - 1; i >= 0; i--) {
-                            chatMessages.insertBefore(nodes[i], chatMessages.firstChild);
+                    fetch('/chats/mark-read/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({ interaction_id: id })
+                    }).then(response => {
+                        if (response.ok) {
+                            el.dataset.isRead = 'true';
+                            el.classList.remove('unread');
+                            window.interactionObserver.unobserve(el);
+
+                            // Примусове оновлення списку чатів
+                            setTimeout(() => {
+                                const chatList = document.getElementById('chat-list');
+                                const selectedChatId = chatList?.querySelector('li.active')?.getAttribute('data-chat-id') || null;
+
+                                fetch(`/chats/list-html/?selected_chat_id=${selectedChatId}`)
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        chatList.innerHTML = data.html;
+                                    })
+                                    .catch(error => {
+                                        console.error('Error loading updated chat list:', error);
+                                    });
+                            }, 300);
                         }
-                        // Оновлюємо позицію прокрутки, щоб зберегти видиме повідомлення
-                        const newScrollHeight = chatMessages.scrollHeight;
-                        chatMessages.scrollTop = newScrollHeight - previousScrollHeight + chatMessages.scrollTop;
-                        hasPrevious = data.has_previous; // Оновлюємо, чи є ще сторінки
-                    }
-                    isLoading = false;
-                })
-                .catch(error => {
-                    console.error('Помилка завантаження взаємодій:', error);
-                    isLoading = false;
-                });
+                    }).catch(err => {
+                        console.error('Error marking read:', err);
+                    });
+                }
             }
         });
-    }
+    }, {
+        root: null,
+        threshold: 0.5
+    });
 
-    // ... Існуючий код для відправки повідомлень і WebSocket ...
+    observeUnreadMessages(); // Перший запуск
 });
 </script>
+<!--
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const input = document.querySelector('#msgInput');
+  const suggestion = document.querySelector('#msgSuggestion');
+
+  let debounceTimer;
+
+  input.addEventListener('input', function () {
+    const value = input.value;
+    suggestion.value = ''; // очищаємо
+
+    if (value.length < 10) return;
+
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(async () => {
+      try {
+        const response = await fetch("/chats/api/gpt_completion_simple/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCookie('csrftoken')
+          },
+          body: JSON.stringify({ prompt: value })
+        });
+
+        const result = await response.json();
+        if (result.response) {
+          const completion = result.response.trim();
+          if (completion.startsWith(value)) {
+            suggestion.value = completion;
+          } else {
+            suggestion.value = value + completion;
+          }
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
+    }, 500);
+  });
+
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      if (suggestion.value && suggestion.value.startsWith(input.value)) {
+        input.value = suggestion.value;
+        suggestion.value = '';
+      }
+    }
+  });
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+});
+</script>
+
+-->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const taskInfo = document.querySelector('.task-info');
+  const chatMessages = document.querySelector('.chat-messages');
+  let offset = 0;
+
+  if (taskInfo) {
+    // вимірюємо висоту .task-info (включно з padding)
+    const style = window.getComputedStyle(taskInfo);
+    const height = taskInfo.getBoundingClientRect().height;
+    const marginTop = parseFloat(style.marginTop);
+    const marginBottom = parseFloat(style.marginBottom);
+    offset = height + marginTop + marginBottom;
+  }
+
+  // ставимо CSS-змінну на контейнер
+  if (chatMessages) {
+    chatMessages.style.setProperty('--task-offset', `${offset}px`);
+  }
+});
+
+// Додатково, якщо висота .task-info може змінюватися динамічно (розгорнути/згорнути),
+// можна слухати resize або MutationObserver і перевстановлювати змінну.
+</script>
+
+
+
+
+
+</div>
 {% endblock %}

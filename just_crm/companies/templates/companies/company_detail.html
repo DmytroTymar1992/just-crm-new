@@ -1,471 +1,118 @@
 {% extends 'sales/base.html' %}
-
+{% load static %}
 {% block title %}Деталі компанії: {{ company.name }}{% endblock %}
-
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'companies/css/company_detail.css' %}">
+<link rel="stylesheet" href="{% static 'chats/css/interaction_item.css' %}">
+{% endblock %}
 {% block content %}
-<style>
-    /* Існуючі стилі */
-    .contacts-container {
-        display: flex;
-        gap: 2rem;
-        margin-bottom: 2rem;
-        margin-top: 1rem;
-        flex-grow: 1;
-    }
 
-    .contacts-list {
-        width: 40%;
-        background: #ffffff;
-        border-radius: 1rem;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-        height: 100%;
-        min-height: 0;
-        overflow-y: auto;
-    }
-
-    .interactions-panel {
-        width: 60%;
-        background: #ffffff;
-        border-radius: 1rem;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-        padding: 2rem;
-        height: 100%;
-        min-height: 0;
-        overflow-y: auto;
-        position: relative;
-    }
-
-    .interactions-panel h3 {
-        font-size: 1.5rem;
-        color: #2b6cb0;
-        margin-bottom: 1rem;
-    }
-
-    .interaction-item {
-        padding: 1rem;
-        border-bottom: 1px solid #e2e8f0;
-        transition: background 0.2s ease;
-    }
-
-    .interaction-item:hover {
-        background: #f1f5f9;
-    }
-
-    .interaction-item p {
-        margin: 0.5rem 0;
-        font-size: 1rem;
-        color: #4a5568;
-    }
-
-    .interaction-item strong {
-        color: #2d3748;
-    }
-
-    .contacts-list::-webkit-scrollbar,
-    .interactions-panel::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    .contacts-list::-webkit-scrollbar-track,
-    .interactions-panel::-webkit-scrollbar-track {
-        background: #e2e8f0;
-        border-radius: 4px;
-    }
-
-    .contacts-list::-webkit-scrollbar-thumb,
-    .interactions-panel::-webkit-scrollbar-thumb {
-        background: #4b6cb7;
-        border-radius: 4px;
-    }
-
-    .table tr.active {
-        background: #e6f0fa;
-    }
-
-    .loading-spinner {
-        display: none;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #4b6cb7;
-        border-radius: 50%;
-        width: 30px;
-        height: 30px;
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        0% { transform: translate(-50%, -50%) rotate(0deg); }
-        100% { transform: translate(-50%, -50%) rotate(360deg); }
-    }
-
-    @media (max-width: 768px) {
-        .contacts-container {
-            flex-direction: column;
-        }
-
-        .contacts-list, .interactions-panel {
-            width: 100%;
-        }
-
-        .interactions-panel {
-            padding: 1.5rem;
-        }
-    }
-
-    /* Стилі для узгодження з interaction_item.html */
-    .interaction-item .message-content {
-        display: inline-block;
-        padding: 10px;
-        border-radius: 10px;
-        background-color: #f0f0f0;
-        max-width: 70%;
-    }
-
-    .interaction-item.sent .message-content {
-        background-color: #0084ff;
-        color: #fff;
-    }
-
-    .interaction-item.received .message-content {
-        background-color: #f0f0f0;
-    }
-
-    .interaction-item.sent {
-        text-align: right;
-    }
-
-    .interaction-item.received {
-        text-align: left;
-    }
-</style>
-<style>
-.chat-container {
-    display: flex;
-    height: 100vh;
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.chat-sidebar {
-    width: 25%;
-    border-right: 1px solid #ddd;
-    padding: 10px;
-    overflow-y: auto;
-}
-
-.chat-list {
-    list-style: none;
-    padding: 0;
-}
-
-.chat-item {
-    display: flex;
-    align-items: center;
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-}
-
-.chat-item:hover, .chat-list li.active {
-    background-color: #f5f5f5;
-}
-
-.avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 5px;
-    margin-right: 10px;
-}
-
-.avatar-placeholder {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: #ccc;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 10px;
-    color: #fff;
-}
-
-.chat-info {
-    flex: 1;
-}
-
-.chat-main {
-    width: 50%;
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid #ddd;
-}
-
-.chat-header {
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
-}
-
-.chat-messages {
-    flex: 1;
-    padding: 10px;
-    overflow-y: auto;
-}
-
-.message {
-    margin-bottom: 15px;
-}
-
-.message.sent {
-    text-align: right;
-}
-
-.message.received {
-    text-align: left;
-}
-
-.message-content {
-    display: inline-block;
-    padding: 10px;
-    border-radius: 10px;
-    background-color: #f0f0f0;
-    max-width: 70%;
-}
-
-.message.sent .message-content {
-    background-color: #0084ff;
-    color: #fff;
-}
-
-.message-form {
-    display: flex;
-    padding: 10px;
-    border-top: 1px solid #ddd;
-}
-
-.message-form textarea {
-    flex: 1;
-    resize: none;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-}
-
-.message-form button {
-    margin-left: 10px;
-    padding: 10px 20px;
-    background-color: #0084ff;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-}
-
-.chat-info-sidebar {
-    width: 25%;
-    padding: 10px;
-}
-
-/* Стиль для зайнятих слотів часу */
-.busy-slot {
-    color: red;
-}
-
-.toast-message {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background-color: #333;
-    color: #fff;
-    padding: 10px 20px;
-    border-radius: 5px;
-    opacity: 0.9;
-    z-index: 10000;
-}
-
-.error-input {
-    box-shadow: 0 0 5px 2px red !important;
-    animation: blink 0.5s step-end infinite !important;
-}
-
-@keyframes blink {
-    50% { box-shadow: 0 0 5px 2px transparent !important; }
-}
-</style>
-
-<style>
-    /* Скидання дефолтних відступів і налаштування повноекранного макету */
-    body, html {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        overflow: hidden;
-    }
-
-    .container {
-        scroll-snap-type: y mandatory;
-        overflow-y: auto;
-        scroll-behavior: smooth;
-        height: 100vh;
-        width: 100%;
-        box-sizing: border-box;
-    }
-
-    /* Секції на всю висоту екрану */
-    .company-section, .contacts-section {
-        height: 100vh;
-        width: 100%;
-        scroll-snap-align: start;
-        display: flex;
-        flex-direction: column;
-        padding: 2rem;
-        box-sizing: border-box;
-    }
-
-    .company-section {
-        background: #f8fafc;
-        justify-content: center;
-        align-items: center;
-    }
-
-    .contacts-section {
-        background: #ffffff;
-        justify-content: flex-start;
-        overflow: hidden;
-        min-height: 0;
-    }
-
-    /* Картка компанії */
-    .card {
-        background: #ffffff;
-        border-radius: 1rem;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-        padding: 2rem;
-        max-width: 800px;
-        width: 100%;
-        margin: 0 auto;
-    }
-
-    /* Контейнер для контактів і взаємодій */
-    .contacts-container {
-        display: flex;
-        gap: 2rem;
-        width: 100%;
-        margin-top: 1rem;
-        flex: 1 1 auto;
-        overflow: hidden;
-        min-height: 0;
-    }
-
-    .contacts-list, .interactions-panel {
-        background: #ffffff;
-        border-radius: 1rem;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-        overflow-y: auto;
-        width: 40%;
-        height: 100%;
-        min-height: 0
-    }
-
-    .interactions-panel {
-        width: 60%;
-        padding: 2rem;
-        position: relative;
-        height: 100%;
-        min-height: 0;
-    }
-
-    /* Адаптивність */
-    @media (max-width: 768px) {
-        .contacts-container {
-            flex-direction: column;
-        }
-
-        .contacts-list, .interactions-panel {
-            width: 100%;
-            height: 50%;
-        }
-
-        .interactions-panel {
-            padding: 1.5rem;
-        }
-
-        .company-section, .contacts-section {
-            padding: 1rem;
-        }
-    }
-</style>
 <div class="container">
     <section class="company-section" id="company-section">
-        <h1>{{ company.name }}</h1>
-        <div class="card">
-            <div class="card-body">
-                <p><strong>Work ID:</strong> {{ company.work_id|default:"—" }}</p>
-                <p><strong>Rabota ID:</strong> {{ company.rabota_id|default:"—" }}</p>
-                <p><strong>Just ID:</strong> {{ company.just_id|default:"—" }}</p>
-                <p><strong>Відповідальний:</strong> {{ company.responsible|default:"—" }}</p>
-                <p><strong>Дата створення:</strong> {{ company.created_at|date:"d.m.Y H:i" }}</p>
-                <p><strong>Слаг:</strong> {{ company.slug }}</p>
+        <div class="left-content">
+            <div class="card custom-scroll">
+                <div class="company-status">
+                    <div class="status-container">
+                        {% if company.status == 'cold_lead' %}
+                            <p>Холодний лід</p>
+                        {% elif company.status == 'warm_lead' %}
+                            <img src="{% static 'companies/images/warm_lead.svg' %}" alt="Теплий лід">
+                            <p>Теплий лід</p>
+                        {% elif company.status == 'hot_lead' %}
+                            <img src="{% static 'companies/images/hot_lead.svg' %}" alt="Гарячий лід">
+                            <p>Гарячий лід</p>
+                        {% elif company.status == 'client' %}
+                            <img src="{% static 'companies/images/client.svg' %}" alt="Клієнт">
+                            <p>Клієнт</p>
+                        {% elif company.status == 'placed_client' %}
+                            <img src="{% static 'companies/images/placed_client.svg' %}" alt="Розміщений клієнт">
+                            <p>Розміщений клієнт</p>
+                        {% elif company.status == 'paid_client' %}
+                            <img src="{% static 'companies/images/paid_client.svg' %}" alt="Оплачений клієнт">
+                            <p>Оплачений клієнт</p>
+                        {% endif %}
+                    </div>
+                    <div class="edit-button">
+                        <a href="#" class="btn btn-primary">Редагувати</a>
+                    </div>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800">{{ company.name }}</h1>
+                <div class="card-body">
+                    <div class="id-container">
+                        <div class="vacancies-container">
+                            <p>Work</p>
+                            <p>{{ work_vacancies }}</p>
+                        </div>
+                        <div class="vacancies-container">
+                            <p>Rabota</p>
+                            <p>{{ rabota_vacancies }}</p>
+                        </div>
+                        <div class="vacancies-container">
+                            <p>Just</p>
+                            <p>{{ just_vacancies }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="company-footer">
+                    {% if company.responsible %}
+                        <p class="responsible"> {{ company.responsible.first_name }} {{ company.responsible.last_name}}</p>
+                    {% endif %}
+                    <p class="created-at"> {{ company.created_at|date:"d.m.Y H:i" }}</p>
+                </div>
             </div>
-        </div>
-        <a href="{% url 'company_list' %}" class="btn btn-secondary">Назад до списку</a>
-    </section>
-
-    <section class="contacts-section" id="contacts-section">
-        <h2>Контакти компанії</h2>
-        <a href="{% url 'contact_create' %}?company_id={{ company.pk }}" class="btn btn-primary">Додати контакт</a>
-        <div class="contacts-container">
-            <div class="contacts-list">
+            <div class="contacts-list custom-scroll">
+                <div class="contacts-header">
+                    <h2 class="text-xl font-semibold text-gray-800">Контакти компанії</h2>
+                    <a href="{% url 'contact_create' %}?company_id={{ company.pk }}" class="btn btn-primary">Додати контакт</a>
+                </div>
                 <table class="table">
                     <thead>
                         <tr>
                             <th>Ім’я</th>
-                            <th>Прізвище</th>
                             <th>Посада</th>
-                            <th>Дата створення</th>
                         </tr>
                     </thead>
                     <tbody id="contacts-table">
                         {% for contact in contacts %}
                             <tr data-contact-id="{{ contact.pk }}" onclick="selectContact({{ contact.pk }})">
                                 <td><a href="{% url 'contact_detail' contact.pk %}" onclick="event.stopPropagation();">{{ contact.first_name }}</a></td>
-                                <td>{{ contact.last_name|default:"—" }}</td>
                                 <td>{{ contact.position|default:"—" }}</td>
-                                <td>{{ contact.created_at|date:"d.m.Y H:i" }}</td>
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="4">Немає контактів</td>
+                                <td colspan="2">Немає контактів</td>
                             </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            <div class="interactions-panel" id="interactions-panel">
+        </div>
+        <div class="right-content">
+            <div class="interactions-block">
+            <h3 id="interactions-title" class="contact-title">Виберіть контакт</h3>
+            <div class="interactions-panel custom-scroll" id="interactions-panel">
                 <div class="loading-spinner" id="loading-spinner"></div>
-                <h3 id="interactions-title">Виберіть контакт</h3>
                 <div id="interactions-content"></div>
+            </div>
             </div>
         </div>
     </section>
 </div>
+
+<script src="{% static 'main/js/scroll.js' %}"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    window.showContacts = function() {
+        document.getElementById('contacts-section').scrollIntoView({ behavior: 'instant' });
+    };
 
-    const sections = document.querySelectorAll('.company-section, .contacts-section');
-
-
-    // Плавний скрол між секціями
-    sections.forEach(section => {
-        section.addEventListener('click', (e) => {
-            if (e.target.tagName !== 'A' && e.target.tagName !== 'BUTTON') {
-                section.scrollIntoView({ behavior: 'smooth' });
-            }
-        });
-    });
-
+    window.showCompany = function() {
+        document.getElementById('company-section').scrollIntoView({ behavior: 'instant' });
+    };
 });
 </script>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const contactsTable = document.getElementById('contacts-table');
@@ -519,19 +166,16 @@ document.addEventListener('DOMContentLoaded', () => {
             interactionsTitle.textContent = data.contact_name;
             if (data.html) {
                 if (append) {
-                    // Додаємо старіші взаємодії зверху
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = data.html;
                     const nodes = Array.from(tempDiv.children);
                     for (let i = nodes.length - 1; i >= 0; i--) {
                         interactionsContent.insertBefore(nodes[i], interactionsContent.firstChild);
                     }
-                    // Оновлюємо позицію прокрутки
                     const newScrollHeight = interactionsPanel.scrollHeight;
                     interactionsPanel.scrollTop = newScrollHeight - prevScrollHeight + interactionsPanel.scrollTop;
                 } else {
                     interactionsContent.innerHTML = data.html;
-                    // Прокрутка донизу після рендерингу
                     setTimeout(() => {
                         interactionsPanel.scrollTop = interactionsPanel.scrollHeight;
                     }, 0);
@@ -554,39 +198,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.selectContact = function(contactId) {
-        // Знімаємо активний клас з усіх рядків
         contactsTable.querySelectorAll('tr').forEach(row => {
             row.classList.remove('active');
         });
 
-        // Додаємо активний клас до вибраного рядка
         const selectedRow = contactsTable.querySelector(`tr[data-contact-id="${contactId}"]`);
         if (selectedRow) {
             selectedRow.classList.add('active');
         }
 
-        // Скидаємо пагінацію
         currentContactId = contactId;
         page = null;
         hasPrevious = false;
 
-        // Завантажуємо останню сторінку
         loadInteractions(contactId);
     };
 
-    // Обробка прокрутки для завантаження старіших взаємодій
     interactionsPanel.addEventListener('scroll', () => {
         if (isLoading || !hasPrevious || !currentContactId) return;
 
-        // Перевірка, чи прокручено майже до верху
         if (interactionsPanel.scrollTop < 50) {
             const previousScrollHeight = interactionsPanel.scrollHeight;
-            page -= 1; // Завантажуємо попередню сторінку
+            page -= 1;
             loadInteractions(currentContactId, page, true, previousScrollHeight);
         }
     });
 
-    // Автоматично вибираємо перший контакт, якщо він є
     const firstContactRow = contactsTable.querySelector('tr[data-contact-id]');
     if (firstContactRow) {
         const firstContactId = firstContactRow.getAttribute('data-contact-id');

@@ -110,7 +110,31 @@ def check_company_exists(request):
 def company_detail(request, pk):
     company = get_object_or_404(Company, pk=pk)  # Використання pk замість slug
     contacts = company.contacts.all()
-    return render(request, 'companies/company_detail.html', {'company': company, 'contacts': contacts})
+    # Додаємо кількість активних вакансій
+    company.work_vacancies = Vacancy.objects.filter(
+        company=company,
+        is_active=True,
+        work_id__isnull=False
+    ).exclude(work_id='').count()
+    company.rabota_vacancies = Vacancy.objects.filter(
+        company=company,
+        is_active=True,
+        rabota_id__isnull=False
+    ).exclude(rabota_id='').count()
+    company.just_vacancies = Vacancy.objects.filter(
+        company=company,
+        is_active=True,
+        just_id__isnull=False
+    ).exclude(just_id='').count()
+
+    context = {
+        'company': company,
+        'contacts': contacts,
+        'work_vacancies': company.work_vacancies,
+        'rabota_vacancies': company.rabota_vacancies,
+        'just_vacancies': company.just_vacancies
+    }
+    return render(request, 'companies/company_detail.html', context)
 
 
 @login_required

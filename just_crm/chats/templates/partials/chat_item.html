@@ -1,0 +1,42 @@
+{% load static %}
+<ul class="chat-list  custom-scroll" id="chat-list">
+    {% for chat in chats %}
+    <li class="{% if chat == selected_chat %}active{% endif %}" data-chat-id="{{ chat.id }}">
+        <a href="{% url 'chat_detail' chat.id %}">
+            <div class="chat-item">
+                <div class="avatar">
+                    {% if chat.contact.avatar %}
+                        <img src="{{ chat.contact.avatar.url }}" alt="{{ chat.contact.first_name }}" >
+                    {% else %}
+                        <div class="avatar-placeholder avatar-color-{{ chat.avatar_color }}">
+                            {{ chat.contact.first_name|slice:":1" }}
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="chat-info">
+                    <div class="status-container">
+                        {% if chat.contact.company.status == 'warm_lead' %}
+                            <img src="{% static 'companies/images/warm_lead.svg' %}" alt="Теплий лід">
+                        {% elif chat.contact.company.status == 'hot_lead' %}
+                            <img src="{% static 'companies/images/hot_lead.svg' %}" alt="Гарячий лід">
+                        {% elif chat.contact.company.status == 'client' %}
+                            <img src="{% static 'companies/images/client.svg' %}" alt="Клієнт">
+                        {% elif chat.contact.company.status == 'placed_client' %}
+                            <img src="{% static 'companies/images/placed_client.svg' %}" alt="Розміщений клієнт">
+                        {% elif chat.contact.company.status == 'paid_client' %}
+                            <img src="{% static 'companies/images/paid_client.svg' %}" alt="Оплачений клієнт">
+                        {% endif %}
+                    </div>
+                    <p class="contact-name">{{ chat.contact.first_name }}</p>
+                    <p class="contact-company">{{ chat.contact.company.name }}</p>
+                </div>
+                {% if chat.unread_count %}
+                    <span class="unread-badge">{{ chat.unread_count }}</span>
+                {% endif %}
+            </div>
+        </a>
+    </li>
+    {% empty %}
+    <li>Немає чатів</li>
+    {% endfor %}
+</ul>

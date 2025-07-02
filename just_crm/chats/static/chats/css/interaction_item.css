@@ -1,0 +1,240 @@
+.message-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    bottom: 0;
+    right: 8px;
+    padding: 4px 0 4px 0;
+
+    border-radius: 4px;
+}
+
+.message-status p {
+    margin: 0;
+}
+
+.message-status img {
+    width: 16px;
+    height: 8px;
+    vertical-align: middle;
+}
+
+.message-status img.message-error{
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+}
+
+.message-status small {
+    font-size: 12px;
+
+}
+
+
+
+.message {
+    margin-top: 15px;
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+.message.sent {
+    text-align: right;
+}
+
+.message.received {
+    text-align: left;
+}
+
+.message.system {
+    text-align: center;
+}
+
+.message-content {
+    display: inline-block;
+    padding: 0 10px 10px 0;
+    border-radius: 18px 18px 18px 0;
+    background-color: #f0f0f0;
+    max-width: 70%;
+}
+
+.padding{
+    padding: 0 0 0 10px;
+}
+
+.message.sent .message-content {
+    background-color: #D6F3C0;
+    color: #000;
+    border-radius: 18px 18px 0 18px;
+}
+
+.message.system .message-content{
+    border-radius: 18px 18px 18px 18px;
+}
+
+.telegram-sender {
+    color: black; /* чорний текст */
+    background: linear-gradient(
+        to right,
+        rgba(0, 132, 255, 0.8) 20%,
+        #4fa8ff 40%,
+        #D6F3C0 80%
+      );
+
+    border-radius: 18px 18px 0 0; /* якщо треба скруглені кути */
+    margin: 0;
+    padding: 5px 0 5px 10px;
+    font-weight: 400; /* тонкий */
+    font-size: 12px;
+}
+
+.telegram-sender-contact {
+    color: black; /* чорний текст */
+    background: linear-gradient(
+        to right,
+        rgba(0, 132, 255, 0.8) 20%,
+        #f0f0f0 80%
+      );
+
+    border-radius: 18px 18px 0 0; /* якщо треба скруглені кути */
+    margin: 0;
+    padding: 5px 0 5px 10px;
+    font-weight: 400;
+    font-size: 12px;
+}
+
+.viber-sender{
+    color: black;
+    background: linear-gradient(
+        to right,
+        rgba(89, 38, 124, 0.8) 20%,
+        #D6F3C0 80%
+      );
+    font-weight: 400;
+    border-radius: 18px 18px 0 0;
+    margin: 0;
+    padding: 5px 0 5px 10px;
+    font-size: 12px;
+}
+
+.viber-sender-contact{
+    color: black;
+    background: linear-gradient(
+        to right,
+        rgba(89, 38, 124, 0.8) 20%,
+        #f0f0f0 80%
+      );
+    font-weight: 400;
+    border-radius: 18px 18px 0 0;
+    margin: 0;
+    padding: 5px 0 5px 10px;
+    font-size: 12px;
+}
+
+.call-sender-contact{
+    color: black;
+    background: linear-gradient(
+        to right,
+        rgba(225, 225, 0, 0.8) 20%,
+        #f0f0f0 80%
+      );
+    font-weight: 400;
+    border-radius: 18px 18px 0 0;
+    margin: 0;
+    padding: 5px 0 5px 10px;
+    font-size: 12px;
+}
+
+.call-sender{
+    color: black;
+    background: linear-gradient(
+        to right,
+        rgba(225, 225, 0, 0.8) 20%,
+        #D6F3C0 80%
+      );
+    font-weight: 400;
+    border-radius: 18px 18px 0 0;
+    margin: 0;
+    padding: 5px 0 5px 10px;
+    font-size: 12px;
+}
+
+.missed-call{
+    color: crimson;
+}
+
+.call-new {
+    color: blue;
+}
+
+.call-result {
+    background: linear-gradient(
+        to right,
+        rgba(161, 202, 129, 0.8) 20%,
+        #D6F3C0 80%
+      );
+    font-weight: bolder;
+    margin: 0;
+    padding: 10px 0 10px 10px;
+}
+
+.call-result-contact {
+    background: linear-gradient(
+        to right,
+        rgba(161, 202, 129, 0.8) 20%,
+        #f0f0f0 80%
+      );
+    font-weight: bolder;
+    margin: 0;
+    padding: 10px 0 10px 10px;
+}
+
+.call-result p{
+    margin: 0;
+}
+
+.call-result-contact p{
+    margin: 0;
+}
+
+
+.call-audio {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0 8px 10px;
+    margin: 8px 0;
+}
+
+.call-recording {
+    height: 32px; /* Зменшуємо висоту плеєра */
+    width: 100%; /* Фіксована ширина для компактності */
+    min-width: 400px;
+    vertical-align: middle;
+}
+
+.call-audio .btn-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    width: 32px; /* Компактна кнопка */
+    height: 32px;
+    border-radius: 4px;
+}
+
+.call-audio .btn-note img {
+    width: 16px;
+    height: 16px;
+}
+
+.missed-call-block{
+    display: flex;
+}
+
+.missed-call-block img{
+    height: 16px;
+    width: 16px;
+    margin: 16px 8px 16px 0;
+}

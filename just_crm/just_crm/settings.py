@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-(o1gbl)c@6vd(%8-t=fveibv!om+fiy6^rf=zkbe^#y2qroipb
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['185.233.117.107', 'localhost', 'just-crm.online', 'www.just-crm.online',]
+ALLOWED_HOSTS = ['185.233.117.107', 'localhost', '127.0.0.1', 'just-crm.online', 'www.just-crm.online',]
 
 
 # Application definition
@@ -146,7 +146,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'uk'
 
 TIME_ZONE = 'UTC'
 
@@ -154,6 +154,7 @@ USE_I18N = True
 
 USE_TZ = True
 
+USE_L10N = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
@@ -268,6 +269,6 @@ CELERY_TIMEZONE = TIME_ZONE          # вже є UTC
 
 DEEPGRAM_API_KEY = "b46dbd746e24c47d42231e3ad9589a7483aaa42a"
 
-                          # ваш ключ
-OPENAI_MODEL    = "gpt-4o-mini"                  # або fine-tuned ID
+OPENAI_API_KEY = "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"                          # ваш ключ
+OPENAI_MODEL    = "gpt-4.1-mini"                  # або fine-tuned ID
 OPENAI_TIMEOUT  = 45                             # сек.

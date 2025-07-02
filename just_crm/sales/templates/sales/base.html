@@ -1,31 +1,25 @@
 <!DOCTYPE html>
+{% load static %}
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}CRM - Продажі{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<!-- Bootstrap CSS -->
+{% block extra_css %}
+{% endblock %}
+<link rel="stylesheet" href="{% static 'sales/css/base.css' %}">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!--
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
 
-<!-- jQuery -->
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
 
-<!-- Bootstrap JS -->
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
-    <style>
-        .sidebar {
-            height: 100vh;
-            position: fixed;
-            width: 250px;
-            background-color: #f8f9fa;
-            padding-top: 20px;
-        }
-        .content {
-            margin-left: 250px;
-            padding: 20px;
-        }
-    </style>
+-->
     <style>
         /* Стилі для пуш-сповіщення */
         .notification {
@@ -59,28 +53,34 @@
         }
     </style>
 </head>
-<body>
-    <div class="sidebar">
-        <h4 class="text-center">Меню продажів</h4>
-        <ul class="nav flex-column">
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'chat_list' %}">Робочий процес</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'kanban_board' %}">Канбан</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'company_list' %}">Компанії</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'contact_list' %}">Контакти</a>
-            </li>
-        </ul>
-    </div>
-    <div class="content">
-        {% block content %}
-        {% endblock %}
-    </div>
+<body class="bg-gray-100 flex h-screen">
+    <!-- Бокове меню -->
+    <!-- Бокове меню -->
+    <aside class="sidebar">
+        <nav class="sidebar-nav">
+            <a href="{% url 'home' %}" class="sidebar-link">
+                <img src="{% static 'sales/images/home.svg' %}" alt="Головна">
+            </a>
+            <a href="{% url 'chat_list' %}" class="sidebar-link">
+                <img src="{% static 'sales/images/workflow.svg' %}" alt="Робочий процес">
+            </a>
+            <a href="{% url 'kanban_board' %}" class="sidebar-link">
+                <img src="{% static 'sales/images/kanban.svg' %}" alt="Канбан">
+            </a>
+            <a href="{% url 'company_list' %}" class="sidebar-link">
+                <img src="{% static 'sales/images/companies.svg' %}" alt="Компанії">
+            </a>
+            <a href="{% url 'contact_list' %}" class="sidebar-link">
+                <img src="{% static 'sales/images/contacts.svg' %}" alt="Контакти">
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Основний контейнер -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
     <!-- Пуш-сповіщення -->
     <div id="notification" class="notification" style="display: none;">
         <div class="notification-content">

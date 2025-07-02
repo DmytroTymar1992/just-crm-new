@@ -20,8 +20,9 @@ class Call(models.Model):
     end_time = models.DateTimeField(blank=True, null=True)
     date = models.DateTimeField(default=timezone.now)
     description = models.TextField(blank=True, null=True)
+    transcription = models.TextField(blank=True, null=True)
     recording_link = models.URLField(blank=True, null=True)
-    result = models.TextField(blank=True, null=True, verbose_name="Результат дзвінка")
+    result = models.CharField(max_length=100, blank=True, null=True, verbose_name="Результат дзвінка")
 
     def __str__(self):
         return f"{self.direction} call with {self.contact.name} on {self.date}"

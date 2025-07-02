@@ -73,6 +73,8 @@ def echat_telegram_webhook(request):
         chat=chat,
         contact=contact,
         contact_phone=contact_phone,
+        user_last_name=user.last_name,
+        user_first_name=user.first_name,
         date=timezone.now(),
         interaction_type='telegram',
         sender=sender,
@@ -94,7 +96,7 @@ def echat_telegram_webhook(request):
         media_url=media_url,
         media_type=media_type,
         echat_message_id=msg.get('id'),
-        delivery_status=('delivered' if data.get('direction') == 'incoming' else 'sent'),
+        delivery_status='delivered',
         raw_event=data,
         date=timezone.now(),
         error_code=None

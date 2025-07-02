@@ -1,0 +1,7 @@
+{% load telegram_date %}
+{% for day, msgs in grouped_interactions %}
+  <div class="date-separator">{{ day|telegram_date }}</div>
+  {% for interaction in msgs %}
+    {% include 'chats/interaction_item.html' with interaction=interaction %}
+  {% endfor %}
+{% endfor %}

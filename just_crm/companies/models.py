@@ -6,6 +6,15 @@ from main.models import CustomUser
 from transliterate import translit
 
 class Company(models.Model):
+    # Вибір статусів
+    STATUS_CHOICES = [
+        ('cold_lead', _('Холодний лід')),
+        ('warm_lead', _('Теплий лід')),
+        ('hot_lead', _('Гарячий лід')),
+        ('client', _('Клієнт')),
+        ('placed_client', _('Розміщений клієнт')),
+        ('paid_client', _('Оплачений клієнт')),
+    ]
     name = models.CharField(
         max_length=255,
         verbose_name=_('Назва'),
@@ -53,6 +62,13 @@ class Company(models.Model):
     is_active = models.BooleanField(
         default=True,
         verbose_name=_('Чи в роботі')
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='cold_lead',
+        verbose_name=_('Статус')
     )
 
     class Meta:

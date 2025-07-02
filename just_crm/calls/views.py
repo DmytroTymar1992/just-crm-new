@@ -144,8 +144,8 @@ def phonet_dial_webhook(request):
                 date=timezone.now(),
                 interaction_type=Interaction.InteractionType.CALL,
                 sender=sender,
-                user_last_name=user_last_name,
-                user_first_name=user_first_name,
+                user_last_name=user.last_name,
+                user_first_name=user.first_name,
                 description="Phonet call event: call.dial",
                 is_read=False
             )
@@ -227,6 +227,11 @@ def phonet_bridge_webhook(request):
             call.contact_phone = contact_phone
             call.save()
 
+            interaction = call.interaction
+            if interaction:
+                interaction.is_read = True
+                interaction.save()
+
             chat = _create_or_get_chat(user, contact)
             channel_layer = get_channel_layer()
             async_to_sync(channel_layer.group_send)(
@@ -277,9 +282,21 @@ def phonet_hangup_webhook(request):
 
             # Оновлюємо поля дзвінка
             call.end_time = end_time
-            call.recording_link = recording_link
-            call.description = "Phonet call event: call.hangup"
             call.contact_phone = contact_phone
+
+            # Логіка для description та recording_link
+            if call.answer_time:
+                call.description = ""
+                call.recording_link = recording_link
+            else:
+                call.recording_link = ""
+                if call.direction == 4:
+                    call.description = "Менеджер не відповів на дзвінок"
+                elif call.direction == 2:
+                    call.description = "Клієнт не відповів на дзвінок"
+                else:
+                    call.description = "Phonet call event: call.hangup"
+
             call.save()
 
             # Оновлюємо об’єкт із бази, щоб отримати актуальний стан
@@ -301,19 +318,20 @@ def phonet_hangup_webhook(request):
             )
 
             # Перевіряємо answer_time після оновлення
-            #if call.answer_time:
-            #    logger.info(f"Opening call result modal for call ID: {call.id}")
-            #    async_to_sync(channel_layer.group_send)(
-            #        f'chat_{call.interaction.chat_id}',
-            #        {
-            #            'type': 'open_call_result_modal',
-            #            'call_id': call.id
-            #        }
-            #    )
-            #else:
-            #    logger.info(f"Modal not opened for call UUID: {uuid}, answer_time is None")
+            if call.answer_time:
+                logger.info(f"Opening call result modal for call ID: {call.id}")
+                async_to_sync(channel_layer.group_send)(
+                    f'chat_{call.interaction.chat_id}',
+                    {
+                        'type': 'open_call_result_modal',
+                        'call_id': call.id,
+                        'loading': True
+                    }
+                )
+            else:
+                logger.info(f"Modal not opened for call UUID: {uuid}, answer_time is None")
 
-            if recording_link:
+            if call.recording_link:
                 logger.debug(f"Scheduling transcription task for call ID {call.id}")
                 transcribe_call.delay(call.id, recording_link)
 
@@ -337,6 +355,16 @@ def update_call_result(request):
         call.result = result
         call.description = description
         call.save()
+
+        chat = call.interaction.chat
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f'chat_{chat.id}',
+            {
+                'type': 'update_interaction',
+                'interaction_id': call.interaction.id,
+            }
+        )
 
         return JsonResponse({
             'status': 'success',

@@ -74,6 +74,8 @@ def echat_viber_webhook(request):
         chat=chat,
         contact=contact,
         contact_phone=contact_phone,
+        user_last_name=user.last_name,
+        user_first_name=user.first_name,
         date=timezone.now(),
         interaction_type='viber',
         sender=sender,
@@ -92,8 +94,7 @@ def echat_viber_webhook(request):
         media_url=msg.get('file'),
         media_type=msg.get('type') if msg.get('type') != 'text' else None,
         echat_message_id=msg.get('message_id'),
-        delivery_status=('delivered' if data.get('direction') == 'incoming'
-                         else 'sent'),
+        delivery_status='delivered',
         raw_event=data,
         date=timezone.now(),
     )

@@ -16,6 +16,8 @@ import json
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
 from ai_helper.models import AiSuggestion
+from django.utils import formats
+from django.utils.formats import date_format
 
 
 # Налаштування логування
@@ -117,6 +119,9 @@ def create_task(request):
     }
     return render(request, 'tasks/task_form_contacts_modal.html', context)
 
+
+
+
 @login_required
 def create_task_in_chat(request, chat_id):
     chat = get_object_or_404(Chat, id=chat_id, user=request.user)
@@ -137,7 +142,7 @@ def create_task_in_chat(request, chat_id):
                     contact=chat.contact,
                     interaction_type=Interaction.InteractionType.SYSTEM,
                     sender=Interaction.SenderType.SYSTEM,
-                    description=f"Task created: {task.task_type} - {task.target}",
+                    description=f"Менеджер створив задачу: {task.get_task_type_display()} з ціллю {task.target}",
                     date=timezone.now(),
                     chat=chat
                 )
@@ -186,17 +191,27 @@ def create_task_in_chat(request, chat_id):
     if request.GET.get("prefill") == "1":
         try:
             s = AiSuggestion.objects.get(chat_id=chat_id)
-            initial = {
-                "task_type": {"Дзвінок": "call", "лист": "email", "повідомлення": "message"}[s.type],
-                "target": s.goal,
-                "description": s.short_description,
+            # Case-insensitive mapping for task_type
+            task_type_map = {
+                "дзвінок": "call",
+                "лист": "email",
+                "повідомлення": "message"
             }
+            # Convert s.type to lowercase for lookup
+            task_type_key = next((key for key in task_type_map if key.lower() == s.type.lower()), None)
+            if task_type_key:
+                initial = {
+                    "task_type": task_type_map[task_type_key],
+                    "target": s.goal,
+                    "description": s.short_description,
+                }
         except AiSuggestion.DoesNotExist:
             pass
     form = TaskForm(user=request.user, initial=initial)
     context = {
         'form': form,
         'chat': chat,
+        'initial': initial,
     }
     return render(request, 'tasks/task_form_modal.html', context)
 
@@ -220,7 +235,7 @@ def complete_task(request, task_id):
             contact=task.contact,
             interaction_type=Interaction.InteractionType.SYSTEM,
             sender=Interaction.SenderType.SYSTEM,
-            description=f"Task complete: {task.task_type} - {task.target}",
+            description=f"Менеджер виконав задачу: {task.get_task_type_display()} з ціллю {task.target}",
             date=timezone.now(),
             chat=chat
         )
@@ -304,7 +319,16 @@ def edit_task(request, task_id):
     return render(request, 'tasks/task_edit_modal.html', context)
 
 
+MONTHS_UA = {
+    1: 'січ.', 2: 'лют.', 3: 'берез.', 4: 'квіт.', 5: 'трав.', 6: 'черв.',
+    7: 'лип.', 8: 'серп.', 9: 'вер.', 10: 'жовт.', 11: 'лист.', 12: 'груд.'
+}
 
+
+def format_date_ua(dt, with_time=False):
+    month = MONTHS_UA[dt.month]
+    base = f"{dt.day} {month}"
+    return f"{base} {dt.strftime('%H:%M')}" if with_time else base
 
 
 @login_required
@@ -322,13 +346,20 @@ def transfer_task(request, task_id):
                 )
                 chat = Chat.objects.filter(user=request.user, contact=task.contact).first()
                 user = request.user
+
+                old_date_str = format_date_ua(task.task_date)
+                new_date_str = format_date_ua(form.cleaned_data['to_date'], with_time=True)
+
                 # Create Interaction with type 'system'
                 interaction = Interaction.objects.create(
                     user=request.user,
                     contact=task.contact,
                     interaction_type=Interaction.InteractionType.SYSTEM,
                     sender=Interaction.SenderType.SYSTEM,
-                    description=f"Task transfer: {task.task_type} - {task.target} з {task.task_date} на {form.cleaned_data['to_date']}",
+                    description=(
+                        f"Менеджер переніс задачу: {task.get_task_type_display()} з ціллю {task.target}, "
+                        f"з {old_date_str} на {new_date_str}"
+                    ),
                     date=timezone.now(),
                     chat=chat
                 )

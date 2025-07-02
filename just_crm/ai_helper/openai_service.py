@@ -9,29 +9,31 @@ client = OpenAI(api_key=settings.OPENAI_API_KEY)
 ENC = get_encoding("cl100k_base")                # токенізатор OpenAI
 
 def _format(i: Interaction) -> str:
-    """Перетворює Interaction + дочірню модель у компактний текст."""
-    ts = i.date.strftime("%Y-%m-%d %H:%M")
+    ts = i.date.strftime("%d.%m.%Y %H:%M")        # 06.06.2025 10:15
+    who = "менеджера" if i.sender == "user" else "клієнта"
 
-    if i.interaction_type == Interaction.InteractionType.CALL:
-        call = i.calls.first()
-        body = (call.description or call.result or "")[:2500]
-        return f"[CALL {ts}] {i.sender}: {body}"
+    match i.interaction_type:
+        case Interaction.InteractionType.CALL:
+            call = i.calls.first()
+            body = (call.result or call.description or "").strip()
+            return f"Взаємодія {ts} • дзвінок від {who}. Результат: {body[:800]}"
 
-    if i.interaction_type == Interaction.InteractionType.EMAIL:
-        em = i.emails.first()
-        body = em.body[:2500] if em else ""
-        subj = em.subject if em else ""
-        return f"[EMAIL {ts}] {i.sender}: subj “{subj}” {body}"
+        case Interaction.InteractionType.EMAIL:
+            em = i.emails.first()
+            subj = em.subject if em else ""
+            return (f"Взаємодія {ts} • лист {who}. Тема: {subj[:120]}. "
+                    f"Текст: {(em.body if em else '')[:400]}")
 
-    if i.interaction_type == Interaction.InteractionType.TELEGRAM:
-        msg = i.telegram_messages.first()
-        return f"[TG {ts}] {i.sender}: {msg.text[:2500] if msg else ''}"
+        case Interaction.InteractionType.TELEGRAM:
+            t = i.telegram_messages.first()
+            return f"Взаємодія {ts} • повідомлення Telegram {who}. Текст: {(t.text if t else '')[:400]}"
 
-    if i.interaction_type == Interaction.InteractionType.VIBER:
-        msg = i.viber_messages.first()
-        return f"[VB {ts}] {i.sender}: {msg.text[:2500] if msg else ''}"
+        case Interaction.InteractionType.VIBER:
+            v = i.viber_messages.first()
+            return f"Взаємодія {ts} • повідомлення Viber {who}. Текст: {(v.text if v else '')[:400]}"
 
-    return f"[{i.interaction_type.upper()} {ts}] {i.sender}: {i.description[:500]}"
+        case _:
+            return f"Взаємодія {ts} • {i.interaction_type}. Опис: {i.description[:400]}"
 
 def _limit_tokens(text: str, max_tok: int = 3500) -> str:
     toks = ENC.encode(text)
@@ -47,7 +49,7 @@ def suggest_task(interaction: Interaction) -> dict:
           .select_related('user', 'contact')
           .prefetch_related('calls', 'emails',
                             'telegram_messages', 'viber_messages')
-          .order_by('-date')[:100])
+          .order_by('-date')[:10])
 
     history = "\n".join(reversed([_format(i) for i in qs]))
     history = _limit_tokens(history)             # захист від >8К токенів
@@ -71,7 +73,8 @@ def suggest_task(interaction: Interaction) -> dict:
         }
         
         Якщо жодна дія не озвучена — запропонуй логічний follow-up.
-        Dідавай перевагу дзвінкам якщо іншого не передбачино логічно по історії взаємодій менеджера та клієнта.
+        Відавай перевагу дзвінкам якщо іншого не передбачино логічно по історії взаємодій менеджера та клієнта.
+        В goal старайся не вказувати дієслова які вказують на тип задачі. це й так зрозуміло з типу задачі.
         """
     )
     user_msg = f"Історія:\n{history}\n\nЯку задачу потрібно створити?"
